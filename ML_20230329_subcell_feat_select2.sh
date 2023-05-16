@@ -2,13 +2,13 @@
 #Robert Ietswaart 
 #sbatch job to run ML on subcellular rates for feature selection round 2.
 
-date=20220619
+date=20230329
 
 program=python
 script=ML_${date}_subcell_feat_select2.py
 
 notifEm=robert_ietswaart@hms.harvard.edu
-baseDir=/n/groups/churchman/ri23/bseq/RF20220426
+baseDir=/n/groups/churchman/ri23/bseq/ML20230329
 scDir=/n/groups/churchman/ri23/code/
 
 module load gcc/6.2.0
@@ -20,13 +20,13 @@ mkdir -p ${baseDir}/LogErr
 
 nthread=1
 
-RATES="chr nuc nucexp_from_chr cyto poly_entry whole_cell"
+RATES="chr chr_release nuc nucexp cyto poly_entry whole_cell"
 
 for r in $RATES
 do    
     jobname=ML_${date}_subcell_select2_k_${r}
 
-    mem_g=32G
+    mem_g=16G
     runtime="4:00:00"    
         
     sbatch -p short -n ${nthread} --mem=${mem_g} -t 0-${runtime} --job-name=${jobname} \

@@ -2,13 +2,13 @@
 #Robert Ietswaart 
 #sbatch job to run ML on subcellular rates for feature selection round 1.
 
-date=20220618
+date=20230329
 
 program=python
 script=ML_${date}_subcell_feat_select1.py
 
 notifEm=robert_ietswaart@hms.harvard.edu
-baseDir=/n/groups/churchman/ri23/bseq/RF20220426
+baseDir=/n/groups/churchman/ri23/bseq/ML20230329
 scDir=/n/groups/churchman/ri23/code/
 
 module load gcc/6.2.0
@@ -22,7 +22,7 @@ nthread=1
      
 N_FEAT_CLASSES=14 #see .py script
 
-RATES="chr nuc nucexp_from_chr cyto poly_entry whole_cell"
+RATES="chr chr_release nuc nucexp cyto poly_entry whole_cell"
 
 for r in $RATES
 do
@@ -30,9 +30,9 @@ do
     do     
         jobname=ML_${date}_subcell_select1_k_${r}_feat${fc}
 
-        if ((4 <= fc <= 6)); #kmers
+        if [ $fc -ge 4 ] && [ $fc -le 6 ]; #kmers
         then
-            mem_g=128G
+            mem_g=32G
             runtime="8:00:00"    
         else
             mem_g=16G

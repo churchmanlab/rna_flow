@@ -3,13 +3,12 @@
 
 # ## Machine learning to explain rates
 # Author: Robert Ietswaart  
-# Date: 20220619  
+# Date: 20230329  
 # License: BSD2. 
-# ij: interactive job with 4 cores and 128GB RAM.
 # Load modules j3dl and activate virtual environment using j4RNAdecay on O2.  
 # Python v3.7.4
 # 
-# Source: `ML_20220616_subcell_feat_select2.ipynb`  
+# Source: `ML_20220619_subcell_feat_select2.py`  
 # For RNA flow project.
 
 
@@ -39,7 +38,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Machine learning feature selection round 2 and test on Bayes rates.')
     parser.add_argument('--rate',type=str, default='whole_cell',help='provide a rate type. Choose from: '
-                        'chr, nuc, nucexp_from_chr, cyto, poly_entry, whole_cell')
+                        'chr, chr_release, nuc, nucexp, cyto, poly_entry, whole_cell')
 
     num2feat_files = {1: 'gene_structure_v2.txt gene_structure_agarwal.txt',
                       2: 'gene_sequence_v2.txt gene_sequence_agarwal.txt',
@@ -52,11 +51,12 @@ def main():
 
     args = parser.parse_args()
 
-    path = os.path.join('/n','groups','churchman','ri23','bseq','RF20220426')
+    path = os.path.join('/n','groups','churchman','ri23','bseq','ML20230329')
+    feature_path = os.path.join('/n','groups','churchman','ri23','bseq','RF20220426','features')
 
     # Add a logger specific to the project and processing stage
     logger = logging.getLogger('ML')
-    log_file = os.path.join(path,'LogErr', 'ML_20220619_subcell_select2_k_%s_py.log' % args.rate)
+    log_file = os.path.join(path,'LogErr', 'ML_20230329_subcell_select2_k_%s_py.log' % args.rate)
     formatter = logging.Formatter(default_logger_format,
                                   datefmt=default_date_format)
     log_handler = logging.FileHandler(log_file)
@@ -70,18 +70,18 @@ def main():
     k_bound_lo = 1e-4 #unit: min^-1: 1 per 7 days
     k_bound_hi = 1e4 #unit: min^-1: 1 per 6 ms
 
-    RATE_TYPE = ['half_life_','k_','T_']
+    RATE_TYPE = ['half_life_','k_']
 
     rt = RATE_TYPE[1] #ML model dependent variable: rates
 
     Timescales = ['chr',
-                  'nuc',
-                  'nucexp_from_chr',
+                  'chr_release',
                   'nucdeg',
+                  'nucexp',
+                  'nuc',
                   'cyto',
                   'poly_entry',
-                  'whole_cell',
-                  'nucexp_from_nucdeg']
+                  'whole_cell']
     Timescales = [rt + ts for ts in Timescales]
 
     OUT_TYPES = ['.Mean', '.MAP', '.0.975.quantile', '.0.025.quantile']
@@ -91,20 +91,16 @@ def main():
 
     o = 'h'
     # for o in organisms:    
-    if o == 'm':
-        path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20220222')
-        filename_b = 'Bayes20220228.tsv'   
-    elif o == 'h':
-        path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20220228_human')
-        filename_b = 'Bayes20220228_human.tsv'
-    path_k = os.path.join('/n','groups','churchman','ri23','bseq','BayesFactor20220307')
-    filename_k = 'Bayes_factor_20220315_' + org_map[o] + '.tsv'
+    path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20230128')
+    filename_b = 'Bayes_Rates_20230128_'+ org_map[o] + '.tsv'
+    path_k = os.path.join('/n','groups','churchman','ri23','bseq','BayesFactor20221206')
+    filename_k = 'Bayes_factor_20230317_' + org_map[o] + '_final.tsv'
 
     B[o] = pd.read_csv(os.path.join(path_b, filename_b), sep='\t')
     K[o] = pd.read_csv(os.path.join(path_k, filename_k), sep='\t')
 
     logger.info('Preprocess rates')
-    # - preprocess nucexp: nucexp_from_chr or nucexp_from_nucdeg depending on nucdeg no or yes 
+    # - preprocess nucexp / chr_release: depending on PUND no or yes 
     # - clip to domain bounds
     # - log transform
     # - standardize
@@ -119,15 +115,17 @@ def main():
 
     for ot in OUT_TYPES:
         for rr in org_red_reps[o]:
-            ts = rt+'nucexp_from_chr'
-            C[o][rr+'.'+ts+ot].where(((C[o][rr+'.bayes_factor'] <= T_bf) | (C[o][rr+'.bayes_factor'].isna())), 
-                                     C[o][rr+'.'+rt+'nucexp_from_nucdeg'+ot], inplace=True)                        
-            ts = rt+'nucdeg'
-            C[o][rr+'.'+ts+ot].where(C[o][rr+'.bayes_factor'] > T_bf, np.nan, inplace=True)
+            ts = rt + 'chr_release'
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg'+ot].where(
+                    C[o]['PUND'], C[o][rr+'.'+rt+'chr'+ot]))
+            ts = rt + 'nucdeg'#only for nucdeg genes according to Bayes Factor
+            C[o][rr+'.'+ts+ot].where(C[o]['PUND'], np.nan, inplace=True)
+            ts = rt + 'nucexp'
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg'+ot].where(
+                C[o]['PUND'], C[o][rr+'.'+ts+'_from_nucres'+ot])) 
 
 
             for ts in Timescales:
-
                 ###Clip range of values beyond numerical integration domain bounds                  
                 C[o][rr+'.'+ts+ot].where(((C[o][rr+'.'+ts+ot] > k_bound_lo) | (C[o][rr+'.'+ts+ot].isna())), 
                                          k_bound_lo, inplace=True) 
@@ -255,7 +253,7 @@ def main():
     logger.info(feature_files)
 
     for f in feature_files:
-        F_raw[f] = pd.read_csv(os.path.join(path, 'features', f), sep='\t')
+        F_raw[f] = pd.read_csv(os.path.join(feature_path, f), sep='\t')
 
         logger.info('%s %d' % (f, len(F_raw[f])))
 
@@ -270,11 +268,6 @@ def main():
     logger.info('Generate feature matrix')
 
     def get_merge_key(cols,f):
-    #     if 'Gene' in cols:#Outdated: in latest version all feature files have Gene IDs.
-    #         mk = 'Gene'
-    #     else: 
-    #         mk = 'Symbol'
-    #     return mk
         return 'Gene'
 
     def get_cols_merge(cols):
@@ -400,7 +393,6 @@ def main():
     rates.drop(['Gene'], axis=1, inplace=True)
     features.drop(['Gene'], axis=1, inplace=True) 
 
-#     L1_alpha = [0.0001 * 10**(i) for i in range(4)]#old/20220620 run
     L1_alpha = [0.0001, 0.00033, 0.00066, 0.001, 0.0033, 0.0066, 0.01, 0.033, 0.066, 0.1]#20220625 run
     
     n_cores = 1
@@ -527,7 +519,8 @@ def main():
 
     if args.rate == 'whole_cell':
         filename = 'Biorxiv2022Agarwal_half_lives.csv'
-        agar = pd.read_csv(os.path.join(path, filename))
+        agar_path = os.path.join('/n','groups','churchman','ri23','bseq','RF20220426')
+        agar = pd.read_csv(os.path.join(agar_path, filename))
 
         agar.drop(['Symbol'], axis=1, inplace=True)
         agar.head()

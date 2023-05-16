@@ -3,14 +3,14 @@
 
 # ## Machine learning to explain rates
 # Author: Robert Ietswaart  
-# Date: 20220618  
+# Date: 20230329  
 # License: BSD2.  
 # Python v3.7.4
 # 
-# Source: `ML_20220616_subcell_feat_select1.ipynb`  
+# Source: `ML_20220618_subcell_feat_select1.py`  
 # For RNA flow project.
 # See also corresponding slurm batch script which calls this .py script: 
-# ML_20220618_subcell_feat_select1.sh
+# ML_20230329_subcell_feat_select1.sh
 
 import os
 import re
@@ -34,7 +34,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Machine learning feature selection round 1 on Bayes rates.')
     parser.add_argument('--rate',type=str, default='whole_cell',help='provide a rate type. Choose from: '
-                        'chr, nuc, nucexp_from_chr, cyto, poly_entry, whole_cell')
+                        'chr, chr_release, nuc, nucexp, cyto, poly_entry, whole_cell')
     parser.add_argument('--feats',type=int, default=1,
                         help='tested feature file(s) numberical index. Choose from:'
                              '1: gene_structure_v2.txt gene_structure_agarwal.txt '
@@ -57,12 +57,12 @@ def main():
 
     args = parser.parse_args()
 
-
-    path = os.path.join('/n','groups','churchman','ri23','bseq','RF20220426')
+    path = os.path.join('/n','groups','churchman','ri23','bseq','ML20230329')
+    feature_path = os.path.join('/n','groups','churchman','ri23','bseq','RF20220426','features')
 
     # Add a logger specific to the project and processing stage
     logger = logging.getLogger('ML')
-    log_file = os.path.join(path,'LogErr', 'ML_20220618_subcell_select1_k_%s_feat%s_py.log' % (args.rate, str(args.feats)))
+    log_file = os.path.join(path,'LogErr', 'ML_20230329_subcell_select1_k_%s_feat%s_py.log' % (args.rate, str(args.feats)))
     formatter = logging.Formatter(default_logger_format,
                                   datefmt=default_date_format)
     log_handler = logging.FileHandler(log_file)
@@ -78,18 +78,18 @@ def main():
     k_bound_lo = 1e-4 #unit: min^-1: 1 per 7 days
     k_bound_hi = 1e4 #unit: min^-1: 1 per 6 ms
 
-    RATE_TYPE = ['half_life_','k_','T_']
+    RATE_TYPE = ['half_life_','k_']
 
     rt = RATE_TYPE[1] #ML model dependent variable: rates
 
     Timescales = ['chr',
-                  'nuc',
-                  'nucexp_from_chr',
+                  'chr_release',
                   'nucdeg',
+                  'nucexp',
+                  'nuc',
                   'cyto',
                   'poly_entry',
-                  'whole_cell',
-                  'nucexp_from_nucdeg']
+                  'whole_cell']
     Timescales = [rt + ts for ts in Timescales]
 
     OUT_TYPES = ['.Mean', '.MAP', '.0.975.quantile', '.0.025.quantile']
@@ -99,21 +99,16 @@ def main():
 
     o = 'h'
     # for o in organisms:    
-    if o == 'm':
-        path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20220222')
-        filename_b = 'Bayes20220228.tsv'   
-    elif o == 'h':
-        path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20220228_human')
-        filename_b = 'Bayes20220228_human.tsv'
-    path_k = os.path.join('/n','groups','churchman','ri23','bseq','BayesFactor20220307')
-    filename_k = 'Bayes_factor_20220315_' + org_map[o] + '.tsv'
+    path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20230128')
+    filename_b = 'Bayes_Rates_20230128_'+ org_map[o] + '.tsv'
+    path_k = os.path.join('/n','groups','churchman','ri23','bseq','BayesFactor20221206')
+    filename_k = 'Bayes_factor_20230317_' + org_map[o] + '_final.tsv'
 
     B[o] = pd.read_csv(os.path.join(path_b, filename_b), sep='\t')
     K[o] = pd.read_csv(os.path.join(path_k, filename_k), sep='\t')
 
-    
     logger.info('Preprocess rates')
-    # - preprocess nucexp: nucexp_from_chr or nucexp_from_nucdeg depending on nucdeg no or yes 
+    # - preprocess nucexp / chr_release: depending on PUND no or yes 
     # - clip to domain bounds
     # - log transform
     # - standardize
@@ -128,15 +123,17 @@ def main():
 
     for ot in OUT_TYPES:
         for rr in org_red_reps[o]:
-            ts = rt+'nucexp_from_chr'
-            C[o][rr+'.'+ts+ot].where(((C[o][rr+'.bayes_factor'] <= T_bf) | (C[o][rr+'.bayes_factor'].isna())), 
-                                     C[o][rr+'.'+rt+'nucexp_from_nucdeg'+ot], inplace=True)                        
-            ts = rt+'nucdeg'
-            C[o][rr+'.'+ts+ot].where(C[o][rr+'.bayes_factor'] > T_bf, np.nan, inplace=True)
+            ts = rt + 'chr_release'
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg'+ot].where(
+                    C[o]['PUND'], C[o][rr+'.'+rt+'chr'+ot]))
+            ts = rt + 'nucdeg'#only for nucdeg genes according to Bayes Factor
+            C[o][rr+'.'+ts+ot].where(C[o]['PUND'], np.nan, inplace=True)
+            ts = rt + 'nucexp'
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg'+ot].where(
+                C[o]['PUND'], C[o][rr+'.'+ts+'_from_nucres'+ot])) 
 
 
             for ts in Timescales:
-
                 ###Clip range of values beyond numerical integration domain bounds                  
                 C[o][rr+'.'+ts+ot].where(((C[o][rr+'.'+ts+ot] > k_bound_lo) | (C[o][rr+'.'+ts+ot].isna())), 
                                          k_bound_lo, inplace=True) 
@@ -146,7 +143,6 @@ def main():
                 #standardize rates (to Z-score) to enhance learning
                 rates = np.log(C[o][rr+'.'+ts+ot])
                 C[o][rr+'z'+ts+ot] = (rates - rates.mean()) / rates.std()
-
 
     
     rand_seed = 42
@@ -167,7 +163,7 @@ def main():
     feature_files = num2feat_files[args.feats].split()
 
     for f in feature_files:
-        F_raw[f] = pd.read_csv(os.path.join(path, 'features', f), sep='\t')
+        F_raw[f] = pd.read_csv(os.path.join(feature_path, f), sep='\t')
 
         logger.info('%s %d' % (f, len(F_raw[f])))
 
@@ -182,11 +178,6 @@ def main():
     logger.info('Generate feature matrix')
     
     def get_merge_key(cols,f):
-    #     if 'Gene' in cols:#Outdated: in latest version all feature files have Gene IDs.
-    #         mk = 'Gene'
-    #     else: 
-    #         mk = 'Symbol'
-    #     return mk
         return 'Gene'
 
     def get_cols_merge(cols):
@@ -228,7 +219,7 @@ def main():
                 feats[c] = feats[c].where(~feats[c].isna(), 0)
             feats.columns = ['_'.join(col) for col in feats.columns.values] #from multi-index to index     
             feats.reset_index(inplace=True) #Gene no longer index
-
+            
             feats = C[o][[sm_key]].merge(feats, on=sm_key, how ='left', suffixes=('', f))#feat row now all rates
 
         else:
