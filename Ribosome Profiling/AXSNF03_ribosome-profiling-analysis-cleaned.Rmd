@@ -1,0 +1,978 @@
+---
+title: "Ribosome-Profiling-Analysis"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# BiocManager::install("Rsubread")
+library(Rsubread)
+all_featurecount_table <- featureCounts(files=c("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgDDX3_RP_rep1_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgDDX3_RP_rep1_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgDDX3_RP_rep1_d3_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgDDX3_RP_rep2_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgDDX3_RP_rep2_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgDDX3_RP_rep2_d3_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgGal4_RP_rep1_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgGal4_RP_rep1_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgGal4_RP_rep1_d3_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgGal4_RP_rep2_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgGal4_RP_rep2_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams/sgGal4_RP_rep2_d3_Aligned.sortedByCoord.out.bam"),
+              annot.ext="/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/gencode.v25.annotation.gtf",
+              isGTFAnnotationFile=TRUE,
+              GTF.featureType="exon",
+              GTF.attrType="gene_id",
+              nthreads = 6)
+```
+
+```{r}
+all_featurecount_table_RNA <- featureCounts(files=c("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgDDX3_RNA_rep1_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgDDX3_RNA_rep1_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgDDX3_RNA_rep1_d3_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgDDX3_RNA_rep2_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgDDX3_RNA_rep2_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgDDX3_RNA_rep2_d3_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgGal4_RNA_rep1_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgGal4_RNA_rep1_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgGal4_RNA_rep1_d3_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgGal4_RNA_rep2_d0_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgGal4_RNA_rep2_d14_Aligned.sortedByCoord.out.bam",
+"/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/all_bams_RNA/sgGal4_RNA_rep2_d3_Aligned.sortedByCoord.out.bam"),
+              annot.ext="/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/gencode.v25.annotation.gtf",
+              isGTFAnnotationFile=TRUE,
+              GTF.featureType="exon",
+              GTF.attrType="gene_id",
+              nthreads = 6)
+```
+
+```{r}
+RP_df <- data.frame(all_featurecount_table$counts)
+RNA_df <- data.frame(all_featurecount_table_RNA$counts)
+
+# RNA counts
+day0_count_RNA <- cbind(RNA_df$sgDDX3_RNA_rep1_d0_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgDDX3_RNA_rep2_d0_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgGal4_RNA_rep1_d0_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgGal4_RNA_rep2_d0_Aligned.sortedByCoord.out.bam)
+day3_count_RNA <- cbind(RNA_df$sgDDX3_RNA_rep1_d3_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgDDX3_RNA_rep2_d3_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgGal4_RNA_rep1_d3_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgGal4_RNA_rep2_d3_Aligned.sortedByCoord.out.bam)
+day14_count_RNA <- cbind(RNA_df$sgDDX3_RNA_rep1_d14_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgDDX3_RNA_rep2_d14_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgGal4_RNA_rep1_d14_Aligned.sortedByCoord.out.bam,
+                        RNA_df$sgGal4_RNA_rep2_d14_Aligned.sortedByCoord.out.bam)
+# RP counts
+day0_count_RP <- cbind(RP_df$sgDDX3_RP_rep1_d0_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgDDX3_RP_rep2_d0_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgGal4_RP_rep1_d0_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgGal4_RP_rep2_d0_Aligned.sortedByCoord.out.bam)
+day3_count_RP <- cbind(RP_df$sgDDX3_RP_rep1_d3_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgDDX3_RP_rep2_d3_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgGal4_RP_rep1_d3_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgGal4_RP_rep2_d3_Aligned.sortedByCoord.out.bam)
+day14_count_RP <- cbind(RP_df$sgDDX3_RP_rep1_d14_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgDDX3_RP_rep2_d14_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgGal4_RP_rep1_d14_Aligned.sortedByCoord.out.bam,
+                        RP_df$sgGal4_RP_rep2_d14_Aligned.sortedByCoord.out.bam)
+
+#add ENSG rownames
+rownames(day0_count_RNA) <- rownames(RP_df)
+rownames(day3_count_RNA) <- rownames(RP_df)
+rownames(day14_count_RNA) <- rownames(RP_df)
+rownames(day0_count_RP) <- rownames(RP_df)
+rownames(day3_count_RP) <- rownames(RP_df)
+rownames(day14_count_RP) <- rownames(RP_df)
+
+# add shorter column names
+colnames(day0_count_RNA) <- c("DDX3_RNA_rep1_d0",
+                          "DDX3_RNA_rep2_d0",
+                          "Gal4_RNA_rep1_d0",
+                          "Gal4_RNA_rep2_d0")
+colnames(day3_count_RNA) <- c("DDX3_RNA_rep1_d3",
+                          "DDX3_RNA_rep2_d3",
+                          "Gal4_RNA_rep1_d3",
+                          "Gal4_RNA_rep2_d3")
+colnames(day14_count_RNA) <- c("DDX3_RNA_rep1_d14",
+                          "DDX3_RNA_rep2_d14",
+                          "Gal4_RNA_rep1_d14",
+                          "Gal4_RNA_rep2_d14")
+
+colnames(day0_count_RP) <- c("DDX3_RP_rep1_d0",
+                          "DDX3_RP_rep2_d0",
+                          "Gal4_RP_rep1_d0",
+                          "Gal4_RP_rep2_d0")
+colnames(day3_count_RP) <- c("DDX3_RP_rep1_d3",
+                          "DDX3_RP_rep2_d3",
+                          "Gal4_RP_rep1_d3",
+                          "Gal4_RP_rep2_d3")
+colnames(day14_count_RP) <- c("DDX3_RP_rep1_d14",
+                          "DDX3_RP_rep2_d14",
+                          "Gal4_RP_rep1_d14",
+                          "Gal4_RP_rep2_d14")
+
+condition_order <- c("sgDDX3", "sgDDX3", "sgGal4", "sgGal4")
+
+#generate conditions (colData) matrix for input into DESeq
+coldata_d0_RNA <- data.frame("file"= colnames(day0_count_RNA), "condition" = condition_order)
+coldata_d3_RNA <- data.frame("file"= colnames(day3_count_RNA), "condition" = condition_order)
+coldata_d14_RNA <- data.frame("file"= colnames(day14_count_RNA), "condition" = condition_order)
+
+coldata_d0_RP <- data.frame("file"= colnames(day0_count_RP), "condition" = condition_order)
+coldata_d3_RP <- data.frame("file"= colnames(day3_count_RP), "condition" = condition_order)
+coldata_d14_RP <- data.frame("file"= colnames(day14_count_RP), "condition" = condition_order)
+
+#input into DESeq2
+library("DESeq2")
+DESeq2_d0_RNA <- DESeqDataSetFromMatrix(countData = day0_count_RNA, 
+                              colData = coldata_d0_RNA,
+                              design = ~ condition)
+DESeq2_d3_RNA <- DESeqDataSetFromMatrix(countData = day3_count_RNA, 
+                              colData = coldata_d3_RNA,
+                              design = ~ condition)
+DESeq2_d14_RNA <- DESeqDataSetFromMatrix(countData = day14_count_RNA, 
+                              colData = coldata_d14_RNA,
+                              design = ~ condition)
+
+DESeq2_d0_RP <- DESeqDataSetFromMatrix(countData = day0_count_RP, 
+                              colData = coldata_d0_RP,
+                              design = ~ condition)
+DESeq2_d3_RP <- DESeqDataSetFromMatrix(countData = day3_count_RP, 
+                              colData = coldata_d3_RP,
+                              design = ~ condition)
+DESeq2_d14_RP <- DESeqDataSetFromMatrix(countData = day14_count_RP, 
+                              colData = coldata_d14_RP,
+                              design = ~ condition)
+
+#contrast allows you to specifiy siDDX3 vs cntrl or vice versa
+DESeq2_d0_RNA <- DESeq(DESeq2_d0_RNA)
+DESeq2_results_d0_RNA <- results(DESeq2_d0_RNA, contrast=c("condition","sgDDX3","sgGal4"))
+DESeq2_results_d0_RNA
+DESeq2_d3_RNA <- DESeq(DESeq2_d3_RNA)
+DESeq2_results_d3_RNA <- results(DESeq2_d3_RNA, contrast=c("condition","sgDDX3","sgGal4"))
+DESeq2_results_d3_RNA
+DESeq2_d14_RNA <- DESeq(DESeq2_d14_RNA)
+DESeq2_results_d14_RNA <- results(DESeq2_d14_RNA, contrast=c("condition","sgDDX3","sgGal4"))
+DESeq2_results_d14_RNA
+
+DESeq2_d0_RP <- DESeq(DESeq2_d0_RP)
+DESeq2_results_d0_RP <- results(DESeq2_d0_RP, contrast=c("condition","sgDDX3","sgGal4"))
+DESeq2_results_d0_RP
+DESeq2_d3_RP <- DESeq(DESeq2_d3_RP)
+DESeq2_results_d3_RP <- results(DESeq2_d3_RP, contrast=c("condition","sgDDX3","sgGal4"))
+DESeq2_results_d3_RP
+DESeq2_d14_RP <- DESeq(DESeq2_d14_RP)
+DESeq2_results_d14_RP <- results(DESeq2_d14_RP, contrast=c("condition","sgDDX3","sgGal4"))
+DESeq2_results_d14_RP
+
+
+#convert DeSeq objects to dataframe
+d0_df_RNA <- data.frame(DESeq2_results_d0_RNA)
+d3_df_RNA <- data.frame(DESeq2_results_d3_RNA)
+d14_df_RNA <- data.frame(DESeq2_results_d14_RNA)
+
+d0_df_RP <- data.frame(DESeq2_results_d0_RP)
+d3_df_RP <- data.frame(DESeq2_results_d3_RP)
+d14_df_RP <- data.frame(DESeq2_results_d14_RP)
+```
+
+```{r}
+load("~/Dropbox/Floor_Lab/Analysis/AXSNF01/gencode.v25.annotation.gtf_Rannot")
+
+# add gene names and transcript biotypes
+indices <- match(row.names(d0_df_RNA), GTF_annotation$trann$gene_id)
+d0_df_RNA$gene_name <- GTF_annotation$trann$gene_name[indices]
+d0_df_RNA$gene_biotype <- GTF_annotation$trann$gene_biotype[indices]
+
+indices <- match(row.names(d3_df_RNA), GTF_annotation$trann$gene_id)
+d3_df_RNA$gene_name <- GTF_annotation$trann$gene_name[indices]
+d3_df_RNA$gene_biotype <- GTF_annotation$trann$gene_biotype[indices]
+
+indices <- match(row.names(d14_df_RNA), GTF_annotation$trann$gene_id)
+d14_df_RNA$gene_name <- GTF_annotation$trann$gene_name[indices]
+d14_df_RNA$gene_biotype <- GTF_annotation$trann$gene_biotype[indices]
+
+indices <- match(row.names(d0_df_RP), GTF_annotation$trann$gene_id)
+d0_df_RP$gene_name <- GTF_annotation$trann$gene_name[indices]
+d0_df_RP$gene_biotype <- GTF_annotation$trann$gene_biotype[indices]
+
+indices <- match(row.names(d3_df_RP), GTF_annotation$trann$gene_id)
+d3_df_RP$gene_name <- GTF_annotation$trann$gene_name[indices]
+d3_df_RP$gene_biotype <- GTF_annotation$trann$gene_biotype[indices]
+
+indices <- match(row.names(d14_df_RP), GTF_annotation$trann$gene_id)
+d14_df_RP$gene_name <- GTF_annotation$trann$gene_name[indices]
+d14_df_RP$gene_biotype <- GTF_annotation$trann$gene_biotype[indices]
+```
+
+```{r}
+DESeq2::plotMA(DESeq2_d0_RNA)
+DESeq2::plotMA(DESeq2_d3_RNA)
+DESeq2::plotMA(DESeq2_d14_RNA)
+
+DESeq2::plotMA(DESeq2_d0_RP)
+DESeq2::plotMA(DESeq2_d3_RP)
+DESeq2::plotMA(DESeq2_d14_RP)
+```
+
+```{r}
+
+# function that combines 2 data frames and renames all column names with RNA and RP prefix
+combine_DEseq2_df <- function(RNA_df, RP_df) {
+  temp <- data.frame(cbind(RNA_df, RP_df),stringsAsFactors = F)
+  tempRNA <- rep("RNA_", ncol(RNA_df))
+  tempRP <- rep("RP_", ncol(RP_df))
+  colnames(temp) <- c(paste0(tempRNA, colnames(RNA_df)), paste0(tempRP, colnames(RP_df)))
+  return(temp)
+}
+
+DESeq2_plot_df_d0 <- combine_DEseq2_df(d0_df_RNA, d0_df_RP)
+DESeq2_plot_df_d3 <- combine_DEseq2_df(d3_df_RNA, d3_df_RP)
+DESeq2_plot_df_d14 <- combine_DEseq2_df(d14_df_RNA, d14_df_RP)
+```
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+library(viridis)
+
+ggplot(data = DESeq2_plot_df_d0, aes(x=`RNA_log2FoldChange`, y=`RP_log2FoldChange`)) + geom_point(shape = 16, colour = "black", alpha = 1/6) + theme_bw() + xlim(-5, 5) + ylim(-5, 5)
+
+ggplot(data = DESeq2_plot_df_d3, aes(x=`RNA_log2FoldChange`, y=`RP_log2FoldChange`)) + geom_point(shape = 16, colour = "black", alpha = 1/6) + theme_bw() + xlim(-5, 5) + ylim(-5, 5)
+
+ggplot(data = DESeq2_plot_df_d14, aes(x=`RNA_log2FoldChange`, y=`RP_log2FoldChange`)) + geom_point(shape = 16, colour = "black", alpha = 1/6) + theme_bw() + xlim(-5, 5) + ylim(-5, 5)
+
+```
+
+```{r}
+#maybe generate multiple plots with different filter criteria
+#only include genes with average reads of > 20 in all conditions - can change this
+
+DESeq2_plot_df_d0_filtered <- DESeq2_plot_df_d0[which(DESeq2_plot_df_d0$RNA_baseMean > 20 & DESeq2_plot_df_d0$RP_baseMean > 20),]
+DESeq2_plot_df_d3_filtered <- DESeq2_plot_df_d3[which(DESeq2_plot_df_d3$RNA_baseMean > 20 & DESeq2_plot_df_d3$RP_baseMean > 20),]
+DESeq2_plot_df_d14_filtered <- DESeq2_plot_df_d14[which(DESeq2_plot_df_d14$RNA_baseMean > 20 & DESeq2_plot_df_d14$RP_baseMean > 20),]
+
+DESeq2_plot_df_d0_filtered$labels <- NA
+DESeq2_plot_df_d3_filtered$labels <- NA
+DESeq2_plot_df_d14_filtered$labels <- NA
+
+gene_list = c("DDX3X", "ODC1", "DVL2", "NT5DC2")
+
+
+DESeq2_plot_df_d0_filtered$labels[which(DESeq2_plot_df_d0_filtered$RNA_gene_name %in% gene_list)] <- DESeq2_plot_df_d0_filtered$RNA_gene_name[which(DESeq2_plot_df_d0_filtered$RNA_gene_name %in% gene_list)]
+
+DESeq2_plot_df_d3_filtered$labels[which(DESeq2_plot_df_d3_filtered$RNA_gene_name %in% gene_list)] <- DESeq2_plot_df_d3_filtered$RNA_gene_name[which(DESeq2_plot_df_d3_filtered$RNA_gene_name %in% gene_list)]
+
+DESeq2_plot_df_d14_filtered$labels[which(DESeq2_plot_df_d14_filtered$RNA_gene_name %in% gene_list)] <- DESeq2_plot_df_d14_filtered$RNA_gene_name[which(DESeq2_plot_df_d14_filtered$RNA_gene_name %in% gene_list)]
+
+
+ggplot(data = DESeq2_plot_df_d0_filtered, 
+       aes(x=`RNA_log2FoldChange`, 
+           y=`RP_log2FoldChange`, 
+           label = `labels`)) + 
+  geom_point(shape = 16, colour = "black", alpha = 1/6) + 
+  theme_bw() + 
+  # xlim(-4.5, 4.5) + 
+  # ylim(-4.5, 4.5) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "red", hjust=0.5, force=10, color="red", size = 4) +
+  geom_vline(xintercept = 0, color = "grey") +
+  geom_hline(yintercept = 0, color = "grey") +
+  ggtitle("d0 sgDDX3 vs sgGal4")
+
+ggplot(data = DESeq2_plot_df_d3_filtered, 
+       aes(x=`RNA_log2FoldChange`, 
+           y=`RP_log2FoldChange`, 
+           label = `labels`)) + 
+  geom_point(shape = 16, colour = "black", alpha = 1/6) + 
+  theme_bw() + 
+  # xlim(-4.5, 4.5) + 
+  # ylim(-4.5, 4.5) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "red", hjust=0.5, force=100, color="red", size = 4) +
+  geom_vline(xintercept = 0, color = "grey") +
+  geom_hline(yintercept = 0, color = "grey") +
+  ggtitle("d3 sgDDX3 vs sgGal4")
+
+
+ggplot(data = DESeq2_plot_df_d14_filtered, 
+       aes(x=`RNA_log2FoldChange`, 
+           y=`RP_log2FoldChange`, 
+           label = `labels`)) + 
+  geom_point(shape = 16, colour = "black", alpha = 1/6) + 
+  theme_bw() + 
+  # xlim(-4.5, 4.5) + 
+  # ylim(-4.5, 4.5) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "red", hjust=0.5, force=100, color="red", size = 4) +
+  geom_vline(xintercept = 0, color = "grey") +
+  geom_hline(yintercept = 0, color = "grey") +
+  ggtitle("d14 sgDDX3 vs sgGal4")
+```
+
+```{r}
+#calculate differential translation using Riborex package
+
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("edgeR")
+# 
+# library(devtools)
+# options(unzip='internal')
+# devtools::install_github('smithlabcode/riborex')
+
+library(riborex)
+
+
+RNA_conditions <- data.frame(factor1=(c("sgDDX3", "sgDDX3", "sgGal4", "sgGal4")))
+ribo_conditions <- data.frame(factor1=(c("sgDDX3", "sgDDX3", "sgGal4", "sgGal4")))
+
+######
+# d0 #
+######
+# "In any case, the contrast argument of the function results takes a character vector of length three: the name of the variable, the name of the factor level for the numerator of the log2 ratio, and the name of the factor level for the denominator." http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#contrasts
+
+riborex_results_d0 <- riborex(rnaCntTable = day0_count_RNA, 
+                           riboCntTable = day0_count_RP, 
+                           rnaCond = RNA_conditions, 
+                           riboCond = ribo_conditions,
+                           engine = "DESeq2",
+                           contrast = c("factor1", "sgDDX3", "sgGal4"))
+summary(riborex_results_d0)
+DESeq2::plotMA(riborex_results_d0)
+#generate p-value histogram to see how "tidy" p-values are
+hist(riborex_results_d0$pvalue, main = 'DESeq2 unadjusted p-values', xlab='Unadjusted p-values')
+
+######
+# d3 #
+######
+riborex_results_d3 <- riborex(rnaCntTable = day3_count_RNA, 
+                           riboCntTable = day3_count_RP, 
+                           rnaCond = RNA_conditions, 
+                           riboCond = ribo_conditions,
+                           engine = "DESeq2",
+                           contrast = c("factor1", "sgDDX3", "sgGal4"))
+summary(riborex_results_d3)
+DESeq2::plotMA(riborex_results_d3)
+#generate p-value histogram to see how "tidy" p-values are
+hist(riborex_results_d3$pvalue, main = 'DESeq2 unadjusted p-values', xlab='Unadjusted p-values')
+
+#######
+# d14 #
+#######
+riborex_results_d14 <- riborex(rnaCntTable = day14_count_RNA, 
+                           riboCntTable = day14_count_RP, 
+                           rnaCond = RNA_conditions, 
+                           riboCond = ribo_conditions,
+                           engine = "DESeq2",
+                           contrast = c("factor1", "sgDDX3", "sgGal4"))
+summary(riborex_results_d14)
+DESeq2::plotMA(riborex_results_d14)
+#generate p-value histogram to see how "tidy" p-values are
+hist(riborex_results_d14$pvalue, main = 'DESeq2 unadjusted p-values', xlab='Unadjusted p-values')
+```
+
+```{r}
+# merge riborex results with the DESeq2 of RNA/RP results
+riborex_results_d0 <- data.frame(riborex_results_d0)
+riborex_results_d3 <- data.frame(riborex_results_d3)
+riborex_results_d14 <- data.frame(riborex_results_d14)
+
+
+DESeq2_riborex_df_d0 <- DESeq2_plot_df_d0
+DESeq2_riborex_df_d3 <- DESeq2_plot_df_d3
+DESeq2_riborex_df_d14 <- DESeq2_plot_df_d14
+
+#add riborex prefix to column names and add empty columns to the combined data frame DESeq2_riborex_df
+riborex_colnames <- paste0(rep("riborex_", ncol(riborex_results_d0)), colnames(riborex_results_d0))
+colnames(riborex_results_d0) <- riborex_colnames
+colnames(riborex_results_d3) <- riborex_colnames
+colnames(riborex_results_d14) <- riborex_colnames
+
+DESeq2_riborex_df_d0[, riborex_colnames] <- NA
+DESeq2_riborex_df_d3[, riborex_colnames] <- NA
+DESeq2_riborex_df_d14[, riborex_colnames] <- NA
+
+#riborex doesn't calculate for every gene so to merge riborex log2foldchange and padj results with DESeq2, use match and assign NA to 'missed' genes
+mtc <- match(rownames(riborex_results_d0), rownames(DESeq2_riborex_df_d0))
+for (i in riborex_colnames) {
+  DESeq2_riborex_df_d0[[i]][mtc] <- riborex_results_d0[[i]]
+}
+
+mtc <- match(rownames(riborex_results_d3), rownames(DESeq2_riborex_df_d3))
+for (i in riborex_colnames) {
+  DESeq2_riborex_df_d3[[i]][mtc] <- riborex_results_d3[[i]]
+}
+
+mtc <- match(rownames(riborex_results_d14), rownames(DESeq2_riborex_df_d14))
+for (i in riborex_colnames) {
+  DESeq2_riborex_df_d14[[i]][mtc] <- riborex_results_d14[[i]]
+}
+```
+
+```{r}
+#assign significant changes by log2fold change and padj for RNA < 0.01 and padj for TE < 0.05
+assign_sig_changes <- function(input_deseq2_riborex_df) {
+  DESeq2_riborex_df <- input_deseq2_riborex_df
+  DESeq2_riborex_df$Tx_class <- NA
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$RNA_log2FoldChange > 0 &
+                               DESeq2_riborex_df$RNA_padj < 0.05] <- "RNA_up"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$RNA_log2FoldChange < 0 &
+                               DESeq2_riborex_df$RNA_padj < 0.05] <- "RNA_down"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$riborex_log2FoldChange > 0 &
+                               DESeq2_riborex_df$riborex_padj < 0.05] <- "TE_up"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$riborex_log2FoldChange < 0 &
+                               DESeq2_riborex_df$riborex_padj < 0.05] <- "TE_down"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$RNA_log2FoldChange > 0 &
+                               DESeq2_riborex_df$RNA_padj < 0.05 &
+                               DESeq2_riborex_df$riborex_log2FoldChange > 0 &
+                               DESeq2_riborex_df$riborex_padj < 0.05] <- "RNA_up_TE_up"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$RNA_log2FoldChange > 0 &
+                               DESeq2_riborex_df$RNA_padj < 0.05 &
+                               DESeq2_riborex_df$riborex_log2FoldChange < 0 &
+                               DESeq2_riborex_df$riborex_padj < 0.05] <- "RNA_up_TE_down"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$RNA_log2FoldChange < 0 &
+                               DESeq2_riborex_df$RNA_padj < 0.05 &
+                               DESeq2_riborex_df$riborex_log2FoldChange > 0 &
+                               DESeq2_riborex_df$riborex_padj < 0.05] <- "RNA_down_TE_up"
+  DESeq2_riborex_df$Tx_class[DESeq2_riborex_df$RNA_log2FoldChange < 0 &
+                               DESeq2_riborex_df$RNA_padj < 0.05 &
+                               DESeq2_riborex_df$riborex_log2FoldChange < 0 &
+                               DESeq2_riborex_df$riborex_padj < 0.05] <- "RNA_down_TE_down"
+  
+  #convert NA to 0 in riborex_padj
+  DESeq2_riborex_df$riborex_padj[is.na(DESeq2_riborex_df$riborex_padj)] <- 1
+  #calculate -log10 padj and rewrite inf results (padj = 0) as 0
+  DESeq2_riborex_df$riborex_log10_padj <- -log10(DESeq2_riborex_df$riborex_padj)
+  DESeq2_riborex_df$riborex_log10_padj[is.infinite(DESeq2_riborex_df$riborex_log10_padj)] <- 0
+  
+  #convert Tx_class to factor for color purposes
+  DESeq2_riborex_df$fTX_class <- factor(DESeq2_riborex_df$Tx_class)
+  return(DESeq2_riborex_df)
+}
+
+
+DESeq2_riborex_df_d0 <- assign_sig_changes(DESeq2_riborex_df_d0)
+DESeq2_riborex_df_d3 <- assign_sig_changes(DESeq2_riborex_df_d3)
+DESeq2_riborex_df_d14 <- assign_sig_changes(DESeq2_riborex_df_d14)
+
+```
+
+```{r}
+#maybe generate multiple plots with different filter criteria
+#only include genes with average reads of > 20 in all conditions - can change this
+
+DESeq2_riborex_df_d0_filtered <- DESeq2_riborex_df_d0[DESeq2_riborex_df_d0$RNA_baseMean>20 & DESeq2_riborex_df_d0$RP_baseMean>20,]
+DESeq2_riborex_df_d3_filtered <- DESeq2_riborex_df_d3[DESeq2_riborex_df_d3$RNA_baseMean>20 & DESeq2_riborex_df_d3$RP_baseMean>20,]
+DESeq2_riborex_df_d14_filtered <- DESeq2_riborex_df_d14[DESeq2_riborex_df_d14$RNA_baseMean>20 & DESeq2_riborex_df_d14$RP_baseMean>20,]
+
+dim(DESeq2_riborex_df_d0)
+dim(DESeq2_riborex_df_d0_filtered)
+dim(DESeq2_riborex_df_d3)
+dim(DESeq2_riborex_df_d3_filtered)
+dim(DESeq2_riborex_df_d14)
+dim(DESeq2_riborex_df_d14_filtered)
+```
+
+```{r}
+ggplot(data = DESeq2_riborex_df_d0_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj, 
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) + 
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d0_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d0_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") + 
+  facet_wrap(~DESeq2_riborex_df_d0_filtered$fTX_class)+
+  ggtitle(label="d0 sgDDX3 vs sgGal4")
+
+ggplot(data = DESeq2_riborex_df_d3_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj, 
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) + 
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d3_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d3_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6.5, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") + 
+  facet_wrap(~DESeq2_riborex_df_d3_filtered$fTX_class)+
+  ggtitle(label="d3 sgDDX3 vs sgGal4")
+
+ggplot(data = DESeq2_riborex_df_d14_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj, 
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) + 
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d14_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d14_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") + 
+  facet_wrap(~DESeq2_riborex_df_d14_filtered$fTX_class)+
+  ggtitle(label="d14 sgDDX3 vs sgGal4")
+```
+
+```{r}
+ggplot(data = DESeq2_riborex_df_d0_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj, 
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) + 
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d0_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d0_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") +
+  ggtitle(label="d0 sgDDX3 vs sgGal4")
+
+ggplot(data = DESeq2_riborex_df_d3_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj, 
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) + 
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d3_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d3_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6.5, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") +
+  ggtitle(label="d3 sgDDX3 vs sgGal4")
+
+ggplot(data = DESeq2_riborex_df_d14_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj, 
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) + 
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d14_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d14_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") +
+  ggtitle(label="d14 sgDDX3 vs sgGal4")
+```
+
+```{r}
+DESeq2_riborex_df_d0_filtered$labels <- NA
+DESeq2_riborex_df_d3_filtered$labels <- NA
+DESeq2_riborex_df_d14_filtered$labels <- NA
+
+# gene_list = c("DDX3X", "ODC1", "DVL2", "NT5DC2")
+gene_list = c("NUP160", "CNOT1", "NXF1")
+
+DESeq2_riborex_df_d0_filtered$labels[which(DESeq2_riborex_df_d0_filtered$RNA_gene_name %in% gene_list)] <- DESeq2_riborex_df_d0_filtered$RNA_gene_name[which(DESeq2_riborex_df_d0_filtered$RNA_gene_name %in% gene_list)]
+
+DESeq2_riborex_df_d3_filtered$labels[which(DESeq2_riborex_df_d3_filtered$RNA_gene_name %in% gene_list)] <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$RNA_gene_name %in% gene_list)]
+
+DESeq2_riborex_df_d14_filtered$labels[which(DESeq2_riborex_df_d14_filtered$RNA_gene_name %in% gene_list)] <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$RNA_gene_name %in% gene_list)]
+
+
+ggplot(data = DESeq2_riborex_df_d0_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj,
+           label = `labels`,
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "red", hjust=0.5, force=100, color="red", size = 4) +
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d0_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d0_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") +
+  ggtitle(label="d0 sgDDX3 vs sgGal4")
+
+ggplot(data = DESeq2_riborex_df_d3_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj,
+           label = `labels`,
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "black", hjust=0.5, force=60, color="black", size = 4) +
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d3_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d3_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") +
+  ggtitle(label="sgDDX3 vs sgGal4 (day 3 post-infection)") + 
+  theme(text = element_text(size = 15)) +
+  xlab("RNAseq log2 fold change") + 
+  ylab("Ribosome Profiling log2 fold change")
+
+
+ggplot(data = DESeq2_riborex_df_d14_filtered, 
+       aes(x=RNA_log2FoldChange, 
+           y=RP_log2FoldChange, 
+           size=riborex_log10_padj,
+           label = `labels`,
+           color = fTX_class)) + 
+  geom_point(shape = 16, alpha = 0.4) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "red", hjust=0.5, force=100, color="red", size = 4) +
+  theme_bw() +
+  geom_vline(data=DESeq2_riborex_df_d14_filtered, aes(xintercept = 0), color = "grey") +
+  geom_hline(data=DESeq2_riborex_df_d14_filtered, aes(yintercept = 0), color = "grey") +
+  # xlim(-6, 6) +
+  # ylim(-6, 6) +
+  scale_size_continuous(name = "-log10 adjusted p-value (Riborex)") +
+  ggtitle(label="d14 sgDDX3 vs sgGal4") 
+```
+
+```{r}
+# cross comparing data with screen
+library(viridis)
+screen_GI <- read.csv2("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF03/top3_avg_gamma_gal4_vs_ddx3.csv", 
+                       header=TRUE,
+                       sep = ",", 
+                       stringsAsFactors = FALSE)
+
+screen_GI$sgGal4_gamma_average_strongest_3 <- as.numeric(screen_GI$sgGal4_gamma_average_strongest_3)
+screen_GI$sgGal4_MannWhitney_p_value <- as.numeric(screen_GI$sgGal4_MannWhitney_p_value)
+screen_GI$sgDDX3_gamma_average_strongest_3 <- as.numeric(screen_GI$sgDDX3_gamma_average_strongest_3)
+screen_GI$sgDDX3_MannWhitney_p_value <- as.numeric(screen_GI$sgDDX3_MannWhitney_p_value)
+screen_GI$significant <- as.factor(screen_GI$significant)
+
+
+# use hugo website to convert
+# get rid of the . in EST0000.1 (version number?)
+GTF_trann <- data.frame(GTF_annotation$trann)
+
+# length(GTF_trann$transcript_id_clean)
+# # 198093
+
+length(screen_GI$gene)
+# 37810 total genes from the screenprocessing pipeline
+length(grep("pseudo_", screen_GI$gene, value=FALSE))
+# 18905 pseudo genes/elements from screenprocessing pipeline
+
+
+pseudo_rows <- grep("pseudo_", screen_GI$gene, value=FALSE)
+screen_GI_gene_nopseudo <- screen_GI$gene[-pseudo_rows]
+length(screen_GI_gene_nopseudo)
+# 18905 how many non-pseuo genes from screenprocessing pipeline 
+
+
+
+length(screen_GI_gene_nopseudo[-which(screen_GI_gene_nopseudo %in% GTF_trann$gene_name)])
+# 525 gene names from screen GI that are not in the new GTF annotation
+
+screen_GI_gene_nopseudo[-which(screen_GI_gene_nopseudo %in% GTF_trann$gene_name)]
+#   [1] "ACN9"            "ACPL2"           "ADC"             "ADRBK1"          "ADRBK2"          "AGAP10"         
+#   [7] "AGPAT6"          "AGPAT9"          "AMICA1"          "ANKRD32"         "APOA1BP"         "APOBEC3A_B"     
+#  [13] "AQPEP"           "AZI1"            "B3GALTL"         "B3GNT1"          "BAGE"            "BAGE3"          
+#  [19] "BAGE4"           "BAI1"            "BAI2"            "BAI3"            "BCMO1"           "BZRAP1"         
+#  [25] "C10orf112"       "C10orf118"       "C10orf12"        "C10orf129"       "C10orf131"       "C10orf137"      
+#  [31] "C10orf32"        "C11orf30"        "C11orf34"        "C11orf35"        "C11orf48"        "C11orf73"       
+#  [37] "C11orf82"        "C11orf83"        "C11orf85"        "C12orf23"        "C12orf39"        "C12orf44"       
+#  [43] "C12orf5"         "C12orf52"        "C12orf55"        "C12orf61"        "C12orf68"        "C12orf79"       
+#  [49] "C13orf35"        "C13orf45"        "C14orf164"       "C14orf166B"      "C14orf182"       "C14orf183"      
+#  [55] "C15orf26"        "C15orf27"        "C15orf38"        "C15orf43"        "C15orf60"        "C16orf11"       
+#  [61] "C16orf3"         "C16orf80"        "C16orf93"        "C17orf103"       "C17orf104"       "C17orf59"       
+#  [67] "C17orf66"        "C17orf70"        "C17orf72"        "C17orf85"        "C18orf42"        "C18orf56"       
+#  [73] "C19orf10"        "C19orf26"        "C19orf40"        "C19orf55"        "C19orf59"        "C19orf69"       
+#  [79] "C19orf77"        "C19orf80"        "C19orf82"        "C1orf110"        "C1orf134"        "C1orf172"       
+#  [85] "C1orf173"        "C1orf177"        "C1orf192"        "C1orf222"        "C1orf227"        "C1orf233"       
+#  [91] "C1orf51"         "C1orf63"         "C1orf65"         "C1orf85"         "C1orf86"         "C1orf95"        
+#  [97] "C20orf112"       "C20orf166"       "C20orf195"       "C20orf201"       "C20orf26"        "C22orf26"       
+# [103] "C22orf43"        "C2orf43"         "C2orf44"         "C2orf53"         "C2orf62"         "C3orf17"        
+# [109] "C3orf27"         "C3orf55"         "C3orf72"         "C3orf83"         "C4B_2"           "C4orf21"        
+# [115] "C4orf27"         "C4orf29"         "C4orf40"         "C4orf6"          "C5orf20"         "C5orf28"        
+# [121] "C5orf48"         "C5orf50"         "C5orf54"         "C5orf55"         "C6orf165"        "C6orf183"       
+# [127] "C6orf195"        "C6orf211"        "C6orf57"         "C6orf7"          "C7orf10"         "C7orf41"        
+# [133] "C7orf60"         "C7orf63"         "C7orf76"         "C8orf47"         "C9orf117"        "C9orf156"       
+# [139] "C9orf169"        "C9orf171"        "C9orf173"        "C9orf37"         "C9orf41"         "C9orf89"        
+# [145] "C9orf9"          "C9orf96"         "CARKD"           "CASP16"          "CCBL1"           "CCBL2"          
+# [151] "CCDC101"         "CCDC104"         "CCDC108"         "CCDC11"          "CCDC132"         "CCDC135"        
+# [157] "CCDC147"         "CCDC176"         "CCDC19"          "CCDC23"          "CCDC37"          "CCDC41"         
+# [163] "CCDC42B"         "CCDC64"          "CCDC64B"         "CCDC79"          "CCL3L1"          "CCL4L1"         
+# [169] "CCRN4L"          "CD97"            "CGB"             "CHDC2"           "CIRH1A"          "CRAMP1L"        
+# [175] "CSRP2BP"         "CXXC11"          "CXorf22"         "CXorf27"         "CXorf30"         "CXorf48"        
+# [181] "CXorf61"         "CXorf64"         "CYP3A7-CYP3AP1"  "CYorf17"         "DAK"             "DARC"           
+# [187] "DCDC5"           "DDX26B"          "DFNB31"          "EFCAB4A"         "EFCAB4B"         "EFTUD1"         
+# [193] "ELTD1"           "EMR1"            "EMR2"            "EMR3"            "ENTHD2"          "ERBB2IP"        
+# [199] "ERCC6-PGBD3"     "ERO1L"           "ERO1LB"          "FAIM3"           "FAM105B"         "FAM115A"        
+# [205] "FAM115C"         "FAM132B"         "FAM154A"         "FAM154B"         "FAM178A"         "FAM188B2"       
+# [211] "FAM194A"         "FAM194B"         "FAM195A"         "FAM195B"         "FAM197Y1"        "FAM203A"        
+# [217] "FAM203B"         "FAM211A"         "FAM211B"         "FAM86A"          "FDX1L"           "FIGF"           
+# [223] "FLJ22184"        "FLJ25363"        "FLJ44313"        "FLJ44635"        "FLJ45513"        "FOLR4"          
+# [229] "FTSJ2"           "GAREM"           "GAREML"          "GCN1L1"          "GLTPD1"          "GNB2L1"         
+# [235] "GPR110"          "GPR111"          "GPR112"          "GPR113"          "GPR114"          "GPR115"         
+# [241] "GPR116"          "GPR123"          "GPR124"          "GPR125"          "GPR126"          "GPR128"         
+# [247] "GPR133"          "GPR144"          "GPR56"           "GPR64"           "GPR97"           "GPR98"          
+# [253] "GSTT1"           "GTF2H2D"         "GYLTL1B"         "HDGFRP2"         "HDGFRP3"         "HDHD1"          
+# [259] "HEATR2"          "HGC6.3"          "HIAT1"           "HIATL1"          "HMHA1"           "HRSP12"         
+# [265] "ICT1"            "IFLTD1"          "IGJ"             "IL8"             "INADL"           "IRG1"           
+# [271] "ITFG3"           "JHDM1D"          "KAL1"            "KCNE1L"          "KIAA0020"        "KIAA0195"       
+# [277] "KIAA0226"        "KIAA0247"        "KIAA0754"        "KIAA0947"        "KIAA1009"        "KIAA1045"       
+# [283] "KIAA1199"        "KIAA1239"        "KIAA1244"        "KIAA1279"        "KIAA1377"        "KIAA1407"       
+# [289] "KIAA1430"        "KIAA1432"        "KIAA1467"        "KIAA1598"        "KIAA1731"        "KIAA1737"       
+# [295] "KIAA1804"        "KIAA1919"        "KIAA1984"        "KIAA2018"        "LARGE"           "LEPRE1"         
+# [301] "LEPREL1"         "LEPREL2"         "LEPREL4"         "LILRA3"          "LIMS3L"          "LINC00594"      
+# [307] "LINS"            "LOC100129083"    "LOC100129216"    "LOC100129361"    "LOC100129520"    "LOC100129636"   
+# [313] "LOC100129924"    "LOC100130301"    "LOC100130357"    "LOC100130370"    "LOC100130451"    "LOC100130539"   
+# [319] "LOC100130705"    "LOC100130880"    "LOC100131094"    "LOC100132146"    "LOC100133267"    "LOC100144595"   
+# [325] "LOC100287036"    "LOC100287534"    "LOC100288255"    "LOC100288524"    "LOC100288814"    "LOC100289187"   
+# [331] "LOC100289561"    "LOC100505478"    "LOC100505549"    "LOC100505679"    "LOC100505841"    "LOC100506127"   
+# [337] "LOC100506388"    "LOC100506422"    "LOC100507003"    "LOC100507462"    "LOC100652758"    "LOC100652824"   
+# [343] "LOC100653515"    "LOC100862671"    "LOC100996634"    "LOC100996693"    "LOC100996758"    "LOC147646"      
+# [349] "LOC149373"       "LOC152586"       "LOC154872"       "LOC158434"       "LOC200726"       "LOC283710"      
+# [355] "LOC286238"       "LOC339862"       "LOC388282"       "LOC388813"       "LOC388849"       "LOC389895"      
+# [361] "LOC391322"       "LOC401052"       "LOC402160"       "LOC441155"       "LOC554223"       "LOC643037"      
+# [367] "LOC643355"       "LOC643669"       "LOC643802"       "LOC646862"       "LOC649330"       "LOC653486"      
+# [373] "LOC728392"       "LOC728637"       "LOC728819"       "LOC729020"       "LOC729159"       "LOC729574"      
+# [379] "LOC730159"       "LOC730183"       "LOC81691"        "LOH12CR1"        "LPHN1"           "LPHN2"          
+# [385] "LPHN3"           "LPPR1"           "LPPR2"           "LPPR3"           "LPPR4"           "LPPR5"          
+# [391] "LRRC16B"         "LRRC48"          "LZTS3"           "MAGEA10-MAGEA5"  "MEF2BNB"         "MEF2BNB-MEF2B"  
+# [397] "METTL20"         "MFI2"            "MFSD4"           "MKI67IP"         "MLF1IP"          "MRP63"          
+# [403] "MST4"            "MTERF"           "MTERFD1"         "MTERFD2"         "MTERFD3"         "MTL5"           
+# [409] "MUC8"            "MYEOV2"          "N6AMT2"          "NAPRT1"          "NARG2"           "NARR"           
+# [415] "NDNL2"           "NEURL"           "NGFRAP1"         "NHP2L1"          "NIM1"            "NRD1"           
+# [421] "NUPL1"           "NUPR1L"          "OR8U8"           "OR9G9"           "PAK7"            "PAPL"           
+# [427] "PCDP1"           "PCNX"            "PCNXL2"          "PCNXL3"          "PCNXL4"          "PET112"         
+# [433] "PHF15"           "PHF16"           "PHF17"           "PHOSPHO2-KLHL23" "PIDD"            "PLAC1L"         
+# [439] "PLK1S1"          "PLSCR3"          "PPAP2A"          "PPAP2B"          "PPAP2C"          "PPAPDC1A"       
+# [445] "PPAPDC1B"        "PPAPDC2"         "PPAPDC3"         "PPP2R4"          "PRAMEF22"        "PRKRIR"         
+# [451] "PRMT10"          "PROL1"           "PRR24"           "PRUNE"           "PTCHD2"          "PTPLA"          
+# [457] "PTPLAD1"         "PTPLAD2"         "PTPLB"           "PTPN20A"         "PTPN20B"         "PVRL1"          
+# [463] "PVRL2"           "PVRL3"           "PVRL4"           "QTRTD1"          "RAB7L1"          "RABL5"          
+# [469] "RLTPR"           "RNMTL1"          "RQCD1"           "RTDR1"           "SCAND3"          "SCXA"           
+# [475] "SCXB"            "SELRC1"          "SETD8"           "SF3B14"          "SGOL1"           "SGOL2"          
+# [481] "SLMO1"           "SLMO2"           "SMCR9"           "SMEK1"           "SMEK2"           "SMIM11"         
+# [487] "SOGA2"           "SPANXF1"         "SRCRB4D"         "SRPR"            "SUV420H1"        "SUV420H2"       
+# [493] "TARP"            "TENC1"           "THEG5"           "TMEM14E"         "TMEM180"         "TMEM183B"       
+# [499] "TMEM194A"        "TMEM194B"        "TMEM35"          "TMEM66"          "TNFAIP8L2-SCNM1" "TOMM70A"        
+# [505] "TTC18"           "TTC40"           "TTLL13"          "UTP11L"          "VPRBP"           "WAPAL"          
+# [511] "WBP5"            "WBSCR16"         "WDR16"           "WDR52"           "WDR65"           "WDR96"          
+# [517] "WIBG"            "XRCC6BP1"        "ZAK"             "ZFYVE20"         "ZHX1-C8ORF76"    "ZMYM6NB"        
+# [523] "ZNF259"          "ZNF664-FAM101A"  "ZNF812"    
+
+write.csv(screen_GI_gene_nopseudo[-which(screen_GI_gene_nopseudo %in% GTF_trann$gene_name)], 
+          "missing_genenames_from_screenGI.csv",
+          row.names = FALSE,
+          quote = FALSE)
+# submitted csv file to https://www.genenames.org/tools/multi-symbol-checker/
+
+hugo_symbol_converted <- read.csv("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF06_07/hgnc-symbol-check.csv",
+                                  header=TRUE)
+
+hugo_symbol_converted$Input[-which(hugo_symbol_converted$Approved.symbol %in% GTF_trann$gene_name)]
+# input genes whose hugo conversion are not in the gencode25
+#   [1] "APOBEC3A_B"      "BAGE"            "BAGE3"           "BAGE4"           "C14orf183"       "C16orf93"        "C1orf134"        "C3orf55"         "C4B_2"           "C7orf76"        
+#  [11] "CCL3L1"          "CCL4L1"          "CXorf27"         "CYP3A7-CYP3AP1"  "ERCC6-PGBD3"     "FAM188B2"        "FAM197Y1"        "FLJ22184"        "FLJ25363"        "FLJ44313"       
+#  [21] "FLJ44635"        "FLJ45513"        "GSTT1"           "GTF2H2D"         "HDGFRP2"         "HDGFRP3"         "HGC6.3"          "KIAA1279"        "KIAA1804"        "LILRA3"         
+#  [31] "LOC100129083"    "LOC100129216"    "LOC100129361"    "LOC100129520"    "LOC100129636"    "LOC100129924"    "LOC100130301"    "LOC100130357"    "LOC100130370"    "LOC100130451"   
+#  [41] "LOC100130539"    "LOC100130705"    "LOC100130880"    "LOC100131094"    "LOC100132146"    "LOC100133267"    "LOC100144595"    "LOC100287036"    "LOC100287534"    "LOC100288255"   
+#  [51] "LOC100288524"    "LOC100288814"    "LOC100289187"    "LOC100289561"    "LOC100505478"    "LOC100505549"    "LOC100505679"    "LOC100505841"    "LOC100506127"    "LOC100506388"   
+#  [61] "LOC100506422"    "LOC100507003"    "LOC100507462"    "LOC100652758"    "LOC100652824"    "LOC100653515"    "LOC100862671"    "LOC100996634"    "LOC100996693"    "LOC100996758"   
+#  [71] "LOC147646"       "LOC149373"       "LOC152586"       "LOC154872"       "LOC158434"       "LOC200726"       "LOC283710"       "LOC286238"       "LOC339862"       "LOC388282"      
+#  [81] "LOC388813"       "LOC388849"       "LOC389895"       "LOC391322"       "LOC401052"       "LOC402160"       "LOC441155"       "LOC554223"       "LOC643037"       "LOC643355"      
+#  [91] "LOC643669"       "LOC643802"       "LOC646862"       "LOC649330"       "LOC653486"       "LOC728392"       "LOC728637"       "LOC728819"       "LOC729020"       "LOC729159"      
+# [101] "LOC729574"       "LOC730159"       "LOC730183"       "LOC81691"        "LZTS3"           "MAGEA10-MAGEA5"  "MUC8"            "OR8U8"           "OR9G9"           "PHOSPHO2-KLHL23"
+# [111] "PLSCR3"          "PRAMEF22"        "SF3B14"          "SMCR9"           "SMIM11"          "TARP"            "THEG5"           "TMEM183B"        "TNFAIP8L2-SCNM1" "TTLL13"         
+# [121] "ZAK"             "ZNF664-FAM101A" 
+
+hugo_symbol_converted$Approved.symbol[-which(hugo_symbol_converted$Approved.symbol %in% GTF_trann$gene_name)]
+#   [1] "APOBEC3A_B"  "BAGE"        "BAGE3"       "BAGE4"       "LINC01599"   "CFAP119"     "C1orf134"    "SLC66A1L"    "C4B_2"       "SEM1"        "CCL3L1"      "CCL4L1"      "H2AP"       
+#  [14] ""            "ERCC6-PGBD3" "MINDY4B"     "FAM197Y1"    ""            ""            ""            ""            ""            "GSTT1"       "GTF2H2C_2"   "HDGFL2"      "HDGFL3"     
+#  [27] ""            "KIFBP"       "MAP3K21"     "LILRA3"      ""            ""            ""            ""            ""            ""            ""            ""            ""           
+#  [40] ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""           
+#  [53] ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""           
+#  [66] ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""           
+#  [79] ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""           
+#  [92] ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""            ""           
+# [105] "LZTS3"       ""            "MUC8"        "OR8U8"       "OR9G9"       ""            "PLSCR3"      "PRAMEF22"    ""            "SMCR9"       "SMIM11"      ""            ""           
+# [118] "TMEM183BP"   ""            "TTLL13"      "MAP3K20"     ""
+
+# some of these genes have been deleted (i.e. the BAGEs) from the current assembly. 
+
+# convert gene names not in gencodev25 in screenprocessing to the gencode 25 version
+screen_GI$gene_names_converted <- screen_GI$gene
+indices <- which(screen_GI$gene %in% hugo_symbol_converted$Input)
+screen_GI_sub <- screen_GI[indices,] 
+indices_2 <- match(screen_GI_sub$gene, hugo_symbol_converted$Input)
+screen_GI_sub$gene_names_converted <-hugo_symbol_converted$Approved.symbol[indices_2]
+
+screen_GI <- rbind(screen_GI[-indices,], 
+                   screen_GI_sub)
+```
+
+```{r}
+
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3,
+           color=significant))+
+  theme_bw() +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  geom_point(shape = 16, alpha = 0.7)
+
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "TE_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: TE_down D3") +  
+  coord_equal() +
+  theme(text = element_text(size = 15))
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "TE_up")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: TE_up D3")
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "RNA_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_down D3")
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "RNA_up")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_up D3")
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "RNA_up_TE_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_up_TE_down D3")
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "RNA_down_TE_up")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_down_TE_up D3")
+
+temp <- DESeq2_riborex_df_d3_filtered$RNA_gene_name[which(DESeq2_riborex_df_d3_filtered$fTX_class == "RNA_down_TE_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_down_TE_down D3")
+```
+
+```{r}
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "TE_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: TE_down d14")
+
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "TE_up")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: TE_up d14")
+
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "RNA_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_down d14")
+
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "RNA_up")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_up d14")
+
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "RNA_up_TE_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_up_TE_down d14")
+
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "RNA_down_TE_up")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_down_TE_up d14")
+
+temp <- DESeq2_riborex_df_d14_filtered$RNA_gene_name[which(DESeq2_riborex_df_d14_filtered$fTX_class == "RNA_down_TE_down")]
+named_subset <- screen_GI[which(screen_GI$gene_names_converted %in% temp),]
+ggplot(data=screen_GI, 
+       aes(x=sgGal4_gamma_average_strongest_3,
+           y=sgDDX3_gamma_average_strongest_3))+
+  theme_bw() +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_point(data=named_subset, colour="red") +
+  ggtitle("GI-map: RNA_down_TE_down d14")
+
+```
+
+
+
+
+
