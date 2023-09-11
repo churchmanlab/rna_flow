@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -c 3
-#SBATCH -t 0-24:00
+#SBATCH -t 2-00:00
 #SBATCH -p medium
 #SBATCH --mem=50G
 #SBATCH --mail-type=FAIL
@@ -33,7 +33,7 @@ module load gatk/4.0.0.0
 # helpful tips: https://www.biostars.org/p/327558/
 
 # Set naming paramters
-Celline="K562" # Hela K562 mouseNIH3T3 HEK293T
+Celline="NIH3T3" # Hela K562 mouseNIH3T3 HEK293T
 MapMethod="t5MMinformed5" #t5MMinformed5 MMinformed5
 # Set quality cutoff
 qual1=20
@@ -44,40 +44,44 @@ AFcutoff=0.75
 path="/n/groups/churchman/mc348/TimelapseSeq/SeqFiles/"
 
 # Set paths to fasta
-infasta='/n/groups/churchman/mc348/TimelapseSeq/SeqFiles/ensGRCh38_h_MT_ncRNAs_allERCC_merge.formatted.fasta' 
+# Human
+# infasta='/n/groups/churchman/mc348/TimelapseSeq/SeqFiles/ensGRCh38_h_MT_ncRNAs_allERCC_merge.formatted.fasta' 
+# Mouse
+infasta='/n/groups/churchman/bms36/genomes/mm10_dm6_ercc_grandslam/mm10_dm6_ercc_cat.fasta' 
 
+# Human
+# out1fasta=${path}ensGRCh38_h_MT_ncRNAs_allERCC_merge.${Celline}snpCor.fasta
+# Mouse 
+out1fasta=${path}mm10_dm6_ercc_cat.${Celline}snpCor.fasta
 
-out1fasta=${path}ensGRCh38_h_MT_ncRNAs_allERCC_merge.${Celline}snpCor.fasta
-# mm10_dm6_ercc_cat.snpCor.fasta
-# ensGRCh38_dm6_ercc_cat.snpCor.fasta 
-# ensGRCh38_h_MT_ncRNAs_allERCC_merge.snpCor.fasta
-out2fasta=${path}${Celline}_ensGRCh38_h_MT_ncRNAs_allERCC_merge.fasta
-# ${Celline}_mm10_dm6_ercc_cat.fasta
-# ${Celline}_ensGRCh38_dm6_ercc_cat.fasta
-# ${Celline}_ensGRCh38_h_MT_ncRNAs_allERCC_merge.fasta
+# Human
+# out2fasta=${path}${Celline}_ensGRCh38_h_MT_ncRNAs_allERCC_merge.fasta
+# Mouse 
+out2fasta=${path}${Celline}_mm10_dm6_ercc_cat.fasta
 
 # Set paths to gtf
-ingtf=${path}ensGRCh38_h_MT_ncRNAs_allERCC_merge_MTmod.gtf
-# ingtf=${path}Hela_ensGRCh38_h_MT_ncRNAs_allERCC_merge_MTmod.gtf  # Use this for new human genomes since it has anti genes, 7S, etc 08162023: No, the original version of this is not quite right
-# mm10_MTmod_dm6_ercc_cat.gtf 
-# ensGRCh38_fusedMTgenes_dm6_ercc_cat.gtf
-# ensGRCh38_h_MT_ncRNAs_allERCC_merge_fusedMTgenes2.gtf
-outgtf=${path}${Celline}_ensGRCh38_h_MT_ncRNAs_allERCC_merge_MTmod.gtf
-# ${Celline}_mm10_MTmod_dm6_ercc_cat.gtf 
-# ${Celline}_ensGRCh38_MTmod_dm6_ercc_cat.gtf  
-# ${Celline}_ensGRCh38_h_MT_ncRNAs_allERCC_merge_MTmod.gtf
+# Human
+# ingtf=${path}ensGRCh38_h_MT_ncRNAs_allERCC_merge_MTmod.gtf
+# Mouse 
+ingtf=${path}mm10_MTmod_dm6_ercc_cat.gtf 
+
+# Human
+# outgtf=${path}${Celline}_ensGRCh38_h_MT_ncRNAs_allERCC_merge_MTmod.gtf
+# Mouse 
+outgtf=${path}${Celline}_mm10_MTmod_dm6_ercc_cat.gtf 
+
 
 # Need to make sure there is a fasta reference and dictionary for this file in the same directory, e.g.
 # faidx reference:
-rm ${infasta}.fai
-samtools faidx $infasta
+# rm ${infasta}.fai
+# samtools faidx $infasta
 # # fasta dictionary
-rm ${infasta/fasta/dict}
-java -jar $PICARD/picard-2.8.0.jar CreateSequenceDictionary R=$infasta O=${infasta/fasta/dict}
+# rm ${infasta/fasta/dict}
+# java -jar $PICARD/picard-2.8.0.jar CreateSequenceDictionary R=$infasta O=${infasta/fasta/dict}
 
 # Set path to input files  ** Make sure these have been mapped to infasta above **
 
-# For Hela, repeat 06162023
+# For Hela
 # inbam1='/n/groups/churchman/mc348/TimelapseSeq/Hela_forGenome/TL1_0m_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
 # inbam2='/n/groups/churchman/mc348/TimelapseSeq/Hela_forGenome/TL3_0m_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
 # inbam3='/n/groups/churchman/mc348/TimelapseSeq/Hela_forGenome/TL4_0m_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
@@ -94,52 +98,60 @@ java -jar $PICARD/picard-2.8.0.jar CreateSequenceDictionary R=$infasta O=${infas
 
 
 # For K562
-inbam1='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/T1-tot_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
-inbam2='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/T1-poly_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
-inbam3='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/T1-chr_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
-inbam4='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/U1-tot_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
-inbam5='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/U1-poly_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
-inbam6='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/U1-chr_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+# inbam1='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/T1-tot_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+# inbam2='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/T1-poly_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+# inbam3='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/T1-chr_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+# inbam4='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/U1-tot_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+# inbam5='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/U1-poly_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+# inbam6='/n/groups/churchman/mc348/TimelapseSeq/K562_forGenome/U1-chr_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+
+# For NIH3T3
+inbam1='/n/groups/churchman/mc348/TimelapseSeq/NIH3T3_forGenome/G1-tot_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+inbam2='/n/groups/churchman/mc348/TimelapseSeq/NIH3T3_forGenome/G1-poly_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+inbam3='/n/groups/churchman/mc348/TimelapseSeq/NIH3T3_forGenome/R1-chr_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+inbam4='/n/groups/churchman/mc348/TimelapseSeq/NIH3T3_forGenome/H1-tot_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+inbam5='/n/groups/churchman/mc348/TimelapseSeq/NIH3T3_forGenome/H1-poly_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
+inbam6='/n/groups/churchman/mc348/TimelapseSeq/NIH3T3_forGenome/S1-chr_t5MMinformed5_Aligned.sortedByCoord.noSpike.bam'
 
 # Remove non-primary alignments and singletons
-echo 'Filtering out non-primary alignments'
-echo 'Working on bam 1'
+# echo 'Filtering out non-primary alignments'
+# echo 'Working on bam 1'
 inbam1p=${inbam1/bam/primary.bam}
-samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam1p $inbam1
-echo 'Working on bam 2'
+# samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam1p $inbam1
+# echo 'Working on bam 2'
 inbam2p=${inbam2/bam/primary.bam}
-samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam2p $inbam2
-echo 'Working on bam 3'
+# samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam2p $inbam2
+# echo 'Working on bam 3'
 inbam3p=${inbam3/bam/primary.bam}
-samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam3p $inbam3
-echo 'Working on bam 4'
+# samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam3p $inbam3
+# echo 'Working on bam 4'
 inbam4p=${inbam4/bam/primary.bam}
-samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam4p $inbam4
-echo 'Working on bam 5'
+# samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam4p $inbam4
+# echo 'Working on bam 5'
 inbam5p=${inbam5/bam/primary.bam}
-samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam5p $inbam5
-echo 'Working on bam 6'
+# samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam5p $inbam5
+# echo 'Working on bam 6'
 inbam6p=${inbam6/bam/primary.bam}
-samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam6p $inbam6
-echo 'Finished filtering bams'
+# samtools view -@ 3 -F 0x8 -F 0x100 -o $inbam6p $inbam6
+# echo 'Finished filtering bams'
 
 
 # Call snps 
 # This only calls loci with >1 read
 # mpileup generates genotype likelihoods at each genomic position with coverage
-echo 'Starting variant calling with bcftools'
-bcftools mpileup -Ou -f $infasta $inbam1p $inbam2p $inbam3p $inbam4p $inbam5p $inbam6p | bcftools call -mv -Ov -o ${Celline}_${MapMethod}_snpcalls.vcf # Did not finish in 12 hours with all 8 bams
-echo 'Finished variant calling'
+# echo 'Starting variant calling with bcftools'
+# bcftools mpileup -Ou -f $infasta $inbam1p $inbam2p $inbam3p $inbam4p $inbam5p $inbam6p | bcftools call -mv -Ov -o ${Celline}_${MapMethod}_snpcalls.vcf # Did not finish in 12 hours with all 8 bams
+# echo 'Finished variant calling'
+# # # 
+# # echo Finished making snpcalls.vcf
 # # 
-# echo Finished making snpcalls.vcf
-# 
-# # make separate files for INDELs and non-INDELS
-grep -v 'INDEL' ${Celline}_${MapMethod}_snpcalls.vcf > ${Celline}_${MapMethod}_snpcalls.noINDEL.vcf
-grep -e '^#' -e 'INDEL' ${Celline}_${MapMethod}_snpcalls.vcf > ${Celline}_${MapMethod}_snpcalls.INDELonly.vcf
-# # make separate files for those that get the alternate allele and those that get N (must have at least 5 reads to get alternate allele)
-python /n/groups/churchman/mc348/TimelapseSeq/Scripts/ParseAndFilterVCF.py ${Celline}_${MapMethod}_snpcalls.noINDEL.vcf $AFcutoff $qual1
-# # # # # 
-# # # # # index noINDEL vcfs for next step
+# # # make separate files for INDELs and non-INDELS
+# grep -v 'INDEL' ${Celline}_${MapMethod}_snpcalls.vcf > ${Celline}_${MapMethod}_snpcalls.noINDEL.vcf
+# grep -e '^#' -e 'INDEL' ${Celline}_${MapMethod}_snpcalls.vcf > ${Celline}_${MapMethod}_snpcalls.INDELonly.vcf
+# # # make separate files for those that get the alternate allele and those that get N (must have at least 5 reads to get alternate allele)
+# python /n/groups/churchman/mc348/TimelapseSeq/Scripts/ParseAndFilterVCF.py ${Celline}_${MapMethod}_snpcalls.noINDEL.vcf $AFcutoff $qual1
+# # # # # # 
+# # # # # # index noINDEL vcfs for next step
 /n/groups/churchman/mc348/programs/gatk-4.1.9.0/gatk IndexFeatureFile -I ${Celline}_${MapMethod}_snpcalls.noINDEL.AFatleast${AFcutoff}.vcf
 /n/groups/churchman/mc348/programs/gatk-4.1.9.0/gatk IndexFeatureFile -I ${Celline}_${MapMethod}_snpcalls.noINDEL.AFbelow${AFcutoff}.vcf
 # # # # 
@@ -188,7 +200,11 @@ java -jar $PICARD/picard-2.8.0.jar CreateSequenceDictionary R=$out2fasta O=${out
 
 # Make new chrom.sizes for modified fasta:
 cut -f1,2 ${out2fasta}.fai > ${path}${Celline}.chrom.sizes
-
+# To make bed files for separation with samtools, e.g.:
+grep '^m_' ${out2fasta}.fai | cut -f1,2 | awk '{print $1 "\t" 0 "\t" $2}' > ${path}${Celline}_m_chrNameLength.bed
+grep '^h_' ${out2fasta}.fai | cut -f1,2 | awk '{print $1 "\t" 0 "\t" $2}' > ${path}${Celline}_h_chrNameLength.bed
+grep '^d_' ${out2fasta}.fai | cut -f1,2 | awk '{print $1 "\t" 0 "\t" $2}' > ${path}${Celline}_d_chrNameLength.bed
+grep '^e_' ${out2fasta}.fai | cut -f1,2 | awk '{print $1 "\t" 0 "\t" $2}' > ${path}${Celline}_e_chrNameLength.bed
 
 # to make matching ENS to GeneName file:
 if [ "${Celline}" = "NIH3T3" ]
