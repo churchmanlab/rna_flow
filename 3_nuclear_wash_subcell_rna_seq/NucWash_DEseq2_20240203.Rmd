@@ -1,0 +1,491 @@
+---
+title: "Nuclear Wash subcellular RNAseq abundance comparison with DEseq2"
+author: "Robert Ietswaart (robert_ietswaart@hms.harvard.edu)"
+date: "20240203"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#install.packages("knitr")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## DEseq2
+Aim is to perform differential expression analysis.
+source: `Kim_lab_SCV2_DEseq2_20201029.Rmd`
+
+## Import relevant libraries
+If you need more info: help(package="GenomicRanges")
+```{r,message=FALSE,warning=FALSE}
+#Only required once to install Bioconductor
+# if (!require("BiocManager", quietly = TRUE))
+# install.packages("BiocManager")
+# BiocManager::install(version = "3.17")
+
+# BiocManager::install(c("GenomicRanges", "rtracklayer"))#Only once required to install
+library(GenomicRanges)
+library(rtracklayer)
+# BiocManager::install(c("GenomicFeatures", "AnnotationDbi", "DESeq2"))#Only once required to install
+library(DESeq2)
+library("biomaRt")
+
+#figure packages:
+# BiocManager::install(c("dplyr", "ggrepel"))#Only once required to install
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+
+'%!in%' <- function(x,y)!('%in%'(x,y))
+```
+
+### Load NucWash subcellular RNA-seq featureCounts gene and exon coverage files
+featureCounts was used to obtain the raw (integer) counts for all samples. 
+gene (exon+intron) is used for DE human gene expression levels between subcellular compartments.
+exon coverage is used to quantify the yeast spike-in (exon only) transcripts to estimate global RNA pools.
+```{r}
+outpath = '/n/groups/churchman/ri23/bseq/CG20240203/'
+path = '/n/groups/churchman/ri23/bseq/CG20230908/'
+filename_gene = 'CG20230908_counts_gene.tsv'
+filename_exon = 'CG20230908_counts_exon.tsv'
+
+ctsg = read.csv(paste(path,'featureCounts_gene/',filename_gene,sep=""), sep='\t', header = TRUE, row.names = 1)
+ctse = read.csv(paste(path,'featureCounts_exon/',filename_exon,sep=""), sep='\t', header = TRUE, row.names = 1)
+```
+
+## get ENSEMBL gene name and additional annotation using BioMart
+Useful to get some background on the ensIDs that your DEseq analysis is providing below
+```{r,include=FALSE}
+mart = useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+#without further specifications this retrieves latest hg release (GRCh38.p13 on 20200920). 
+#Instead use if you rerun later: run archive verion for Sept 2020 as your DEseq2 results below could be sensitive to release version. 
+# mart = useMart(biomart = "ensembl", host="http://jan2024.archive.ensembl.org/",dataset = "hsapiens_gene_ensembl")#check host url before running 
+
+geneID2name = getBM(attributes = c("ensembl_gene_id","external_gene_name","hgnc_symbol","hgnc_id","entrezgene_id","gene_biotype","description"),
+                    mart=mart)
+#sort first by ensID (to have gnsdf and geneID2name match transcripts), then assign new column
+geneID2name = geneID2name[order(geneID2name$ensembl_gene_id),]
+```
+
+## Independent filtering for protein-coding genes and >0 coverage to increase DEseq2 statistical power
+```{r}
+print('all input genes')
+dim(ctsg)
+print('no NA expression genes')
+ctsg = ctsg[!rowSums(is.na(ctsg))>0,]
+dim(ctsg)
+print('protein coding genes')
+ensID_protein_coding = geneID2name$ensembl_gene_id[which(geneID2name$gene_biotype=="protein_coding")]
+ctsg = ctsg[(rownames(ctsg) %in% ensID_protein_coding),]
+dim(ctsg)
+print('protein coding genes with >0 expression in at least 1 sample')
+ctsg = ctsg[rowSums(ctsg) > 0,]
+dim(ctsg)
+```
+
+# Retain only yeast spikein transcripts in exon coverage file
+```{r}
+# discard_genes <- rownames(ctse)[grepl("ENSG", rownames(ctse))]
+# keep <- rownames(ctse)[rownames(ctse)%!in% discard_genes]
+keep <- c('NM_001181986.1__ICT1', 'NM_001181842.1__HIF1', 'NM_001179305.1__ENO2', 'NM_001179373.1__YKE4', 'NM_001181805.1__HMS2', 'NM_001179170.1__BCD1')
+ctse <- ctse[keep,]
+```
+
+
+## Provide metadata for PCA
+```{r}
+Lib_short = colnames(ctsg)
+
+#get conditions
+subcell_fracs = c('WC','C','NW','N', 'NW_NRRD')
+conditions = rep(c('WC','C','NW','N'), times = 4)
+conditions = c(conditions, rep('NW_NRRD', times = 3))
+replicates = rep(1:4, each = 4)
+replicates = c(replicates, seq(2,4))
+
+coldata = data.frame(row.names = Lib_short,
+                     sample = rep(1:19),
+                     condition = conditions,
+                     replicate = replicates)
+
+coldata$sample = factor(x = coldata$sample,levels = rep(1:19))
+coldata$condition = factor(x = coldata$condition,levels = subcell_fracs)
+coldata$replicate = factor(x = coldata$replicate,levels = seq(1,4))
+```
+
+
+### Initialize DEseq object
+```{r}
+ddsg = DESeqDataSetFromMatrix(countData = ctsg, colData = coldata, design = ~condition)
+ddse = DESeqDataSetFromMatrix(countData = ctse, colData = coldata, design = ~condition)
+
+ddse = estimateSizeFactors(ddse)
+sizeFactors(ddsg) <- sizeFactors(ddse)
+ddsg = estimateDispersions(ddsg, fitType='local')#local is more sensitive than not specifying (default) fitType
+plotDispEsts(ddsg)#plot dispersion est
+sizeFactors(ddsg) 
+```
+
+### Output spike-in normalized count data for comparison with rates
+```{r}
+#normalized counts
+ncts = counts(ddsg, normalized=TRUE)
+ncts = as.data.frame(ncts)
+
+# Match the row names (ensembl gene IDs) of df with those in geneID2name
+ncts$symbol <- geneID2name$hgnc_symbol[match(rownames(ncts), geneID2name$ensembl_gene_id)]
+# Convert row names to a column named gene for output
+ncts$gene <- rownames(ncts)
+
+# Rearrange the columns to have 'GeneID' as the first column
+ncts <- ncts[, c("gene", "symbol", setdiff(names(ncts), c("gene", "symbol")))]
+# Order by gene id
+ncts <- ncts[order(ncts$gene), ]
+
+write.csv(ncts, file = paste(outpath,'DEseq2/','DEseq2_spikein_normed_counts.csv',sep=""),row.names=FALSE,quote=FALSE)
+```
+
+### Variance stabilizing transformation on counts for PCA / DEseq2
+Perform this on unfiltered data (see section Independent Filtering) coming
+```{r}
+# Apply variance stabilizing transformation
+vsd <- varianceStabilizingTransformation(ddsg, blind = TRUE, fitType = "parametric")
+vstData <- getVarianceStabilizedData(ddsg)
+vstData <- data.frame(vstData)
+selection <- order(apply(vstData, 1, var), decreasing = T)[1:1000]
+data.subset <- vstData[selection, ]
+```
+
+
+### PCA analysis to check variation between conditions
+#### 1) Using 1000 most variant genes: standard practice  
+```{r, fig.height=9, fig.width=12}
+# Perform PCA
+pca <- prcomp(t(data.subset))
+percentVar <- pca$sdev ^ 2 / sum(pca$sdev ^ 2)
+
+data.pca <- data.frame('PC1' = pca$x[, 'PC1'],
+                       'PC2' = pca$x[, 'PC2'],
+                       'Condition'  = coldata$condition,
+                       'Replicate' = coldata$replicate,
+                       'Sample' = colnames(data.subset))
+
+# Plot PCA, coloured by sequencing batch
+
+PCA_plot = function (pca_data,Color,lab_sample,lab_title){
+  pl = ggplot(pca_data, aes(x=PC1, y=PC2, color=Color, label=lab_sample)) + geom_point(aes(shape = Replicate), size=5) +
+  theme(text = element_text(size=14), panel.border = element_rect(fill = NA, colour = "black")) +
+  xlab(paste0("PC1: ", round(percentVar[1] * 100), "% variance")) + ylab(paste0("PC2: ", round(percentVar[2] * 100), "% variance")) +
+  geom_text_repel(vjust = 0, nudge_y=1.5) + ggtitle(paste("Colored by ",lab_title,sep=''))
+  return(pl) 
+}#PCA_plot
+
+pca_title = 'Condition'
+p =  PCA_plot(data.pca,data.pca$Condition,data.pca$Sample,pca_title)
+p
+fname=paste(outpath,'DEseq2/','DEseq2_PCA_color_',pca_title,sep="")
+# ggsave(paste(fname,'.pdf',sep=''),p)
+# ggsave(paste(fname,'.png',sep=''),p)
+```
+
+##Perform DEseq2
+`https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html`
+Choosing the right DE_contrast below is critical for getting positive results.
+raw code: `https://github.com/mikelove/DESeq2/blob/master/R/results.R`
+```{r}
+###########################################################IMPORTANT: ensure that comparison is wrt compartment of interest: select the reference compartment
+ddsg$condition <- relevel(ddsg$condition, ref="C")#"N")
+
+#Perform statistical testing
+ddsg = nbinomWaldTest(ddsg, betaPrior=FALSE)#used / best practice: if you want to use pre-existing dispersion estimates
+
+print('labels of GLM coefficients')
+resultsNames(ddsg)
+```
+
+#Define contrasts and output results 
+adjust to select the comparison of interest.
+```{r}
+# DE_contrast = list('condition_NW_vs_N')
+DE_contrast = list('condition_NW_vs_C')
+# DE_contrast = list('condition_C_vs_N')
+# DE_contrast = list('condition_NW_vs_WC')
+# DE_contrast = list('condition_N_vs_WC')
+# DE_contrast = list('condition_C_vs_WC')
+# DE_contrast = list('condition_NW_NRRD_vs_NW')
+
+print('tested contrast')
+DE_contrast
+
+alpha_FDR=0.01
+resc = results(ddsg,independentFiltering=TRUE,alpha=alpha_FDR,contrast=DE_contrast)
+ 
+summary(resc)
+```
+
+### Output DEseq2 ENSG gene lists to csv
+```{r}
+# Match the row names (ensembl gene IDs) of df with those in geneID2name
+resc$symbol <- geneID2name$hgnc_symbol[match(rownames(resc), geneID2name$ensembl_gene_id)]
+# Convert row names to a column named gene for output
+resc$gene <- rownames(resc)
+
+# Rearrange the columns to have 'GeneID' as the first column
+resc <- resc[, c("gene", "symbol", setdiff(names(resc), c("gene", "symbol")))]
+# Order by p-adj
+resc <- resc[order(resc$padj), ]
+
+ENS_file=paste(outpath,'DEseq2/','DEseq2_contrast_',DE_contrast[1],sep="")
+
+output_file = resc
+write.csv(output_file, file = paste(ENS_file,'.csv',sep=''),row.names=FALSE,quote=FALSE)
+```
+
+## Volcano plot
+```{r}
+ymax = 300 #for IsoG 60 for JQ1
+xmax = 10 #4 for JQ1, 6 for IsoG
+resp=as.data.frame(resc)
+
+resp$sig = resc$padj<alpha_FDR
+resp$mlog10padj = -log10(resc$padj)
+resp$mlog10padj[which(resp$mlog10padj>ymax)] = ymax
+resp$log2FoldChange[which(resp$log2FoldChange>xmax)] = xmax
+resp$log2FoldChange[which(resp$log2FoldChange<(-xmax))] = (-xmax)
+
+
+p = ggplot(resp, aes(log2FoldChange, mlog10padj))+
+theme_bw(base_size=6)+
+geom_point(aes(col=sig,size=log10(baseMean)),alpha=5/100,size=0.005)+#
+geom_vline(aes(xintercept = median(resc$log2FoldChange)), linetype="dashed", color = "blue", linewidth = 0.2)+#
+scale_size(range = c(0, 0.3))+
+scale_color_manual(values=c("black", "red"))+
+xlim(-xmax, xmax)+
+ylim(0, ymax)+
+# geom_text_repel(data=filter(resp, symbol %in% c('RUNX1','SUPT16H','TAL1','RUNX2','MYC','MYB','BRCA1')), aes(label=symbol), 
+#         hjust = 1,nudge_x = -1.5,nudge_y = 4,direction = "y",force=0.3,segment.size = 0.4,segment.alpha = 10/10,segment.color="grey",size=1.8,fontface=3)+
+# geom_text_repel(data=filter(resp, symbol %in% c('FOXO4','SLC9A1')), aes(label=symbol),
+#         hjust = 0,nudge_x = +2,direction = "y",force=0.5,segment.size = 0.4,segment.alpha = 10/10,segment.color="grey",size=1.8,fontface=3)+#,
+theme(legend.position = "none",legend.title = element_blank(),#axis.title = element_blank(),
+      panel.grid.major = element_line(size = 0.2),#panel.grid.minor = element_blank(),
+      panel.border=element_rect(colour = 'grey', size = 0.5),axis.ticks=element_line(colour = 'grey', linewidth = 0.5),
+      axis.title.x=element_blank(),
+      axis.title.y=element_blank(),)
+
+p
+
+fname=paste(ENS_file,'_volcano_plot',sep="")
+ggsave(paste(fname,'.pdf',sep=''),p, width = 1.3,height=1.7)#inch
+ggsave(paste(fname,'.tiff',sep=''),p, width = 1.3,height=1.7,dpi=300)#inch
+
+#total number of tested genes
+dim(resp)[1]
+#total number of genes with twofold down (sig and not sig)
+length(which(resp$log2FoldChange<1))
+#total number of DE genes
+length(which(resp$sig))
+#total number of upregulated genes
+length(which(resp$log2FoldChange>0 & resp$sig))
+#total number of downregulated genes
+length(which(resp$log2FoldChange<0 & resp$sig))
+#not very different genes
+length(which(resp$log2FoldChange>-1))
+# resp[which(resp$log2FoldChange>0),]
+resp[which(resp$log2FoldChange>0 & resp$sig),]
+resp[which(resp$log2FoldChange>-1),]
+```
+
+### Boxplots of gene set in NW vs N/C fold change
+Load PUNDs and functional cluster genes files.
+Do horizontal boxplots of the L2FC.
+```{r}
+file_punds = '/n/groups/churchman/ri23/bseq/BayesFactor20240112/Nucdeg_20240112_human_final.tsv'
+punds = read.csv(file_punds, sep='\t', header = TRUE, row.names = 1)
+
+file_clusters = '/n/groups/churchman/ri23/bseq/Function20240108/Cluster_R_half_life_h.tsv'
+func = read.csv(file_clusters, sep='\t', header = TRUE, row.names = 1)
+
+resp$pund <- rownames(resp) %in% rownames(punds)
+resp$func <- func$Cluster_heatmap[match(rownames(resp), func$Gene)]
+resp$func <- factor(x = resp$func,levels = seq(1,max(resp$func[!is.na(resp$func)])))
+
+p = ggplot(resp, aes(x = 1, y = log2FoldChange)) +
+       # geom_violin(scale = "width", fill = "lightblue") +
+       geom_point(aes(y = log2FoldChange), position = position_jitter(width = 0.4), color = "black", alpha=1/100, shape = ".") +
+       geom_boxplot(width = 0.8, fill = NA, color = "black", outlier.shape = NA)+
+       ylim(-xmax, xmax)+
+       coord_flip()+
+       theme_bw(base_size=6)+
+       theme(axis.title.x=element_blank(),
+             axis.title.y=element_blank(),
+             axis.text.x=element_blank(),
+             axis.ticks.x=element_blank(),
+             axis.text.y=element_blank(),
+             axis.ticks.y=element_blank(),
+             panel.border = element_blank(),
+             panel.grid.major.y = element_blank(),
+             panel.grid.minor.y = element_blank())
+p
+fname=paste(ENS_file,'_box',sep="")
+ggsave(paste(fname,'.pdf',sep=''),p, width = 3,height=0.5)#inch
+ggsave(paste(fname,'.tiff',sep=''),p, width = 3,height=0.5,dpi=300)#inch
+
+# # Plot
+p = ggplot(resp[resp$pund,], aes(x = 1, y = log2FoldChange)) +
+       # geom_violin(scale = "width", fill = "lightblue") +
+       geom_point(aes(y = log2FoldChange), position = position_jitter(width = 0.4), color = "black", alpha=5/100, shape = ".") +
+       geom_boxplot(width = 0.8, fill = NA, color = "black", outlier.shape = NA)+
+       ylim(-xmax, xmax)+
+       coord_flip()+
+       theme_bw(base_size=6)+ 
+       theme(axis.title.x=element_blank(),
+             axis.title.y=element_blank(),
+             axis.text.x=element_blank(),
+             axis.ticks.x=element_blank(),
+             axis.text.y=element_blank(),
+             axis.ticks.y=element_blank(),
+             panel.border = element_blank(),
+             panel.grid.major.y = element_blank(),
+             panel.grid.minor.y = element_blank())
+p
+fname=paste(ENS_file,'_box_punds',sep="")
+ggsave(paste(fname,'.pdf',sep=''),p, width = 3,height=0.5)#inch
+ggsave(paste(fname,'.tiff',sep=''),p, width = 3,height=0.5,dpi=300)#inch
+
+
+p = ggplot(resp[!is.na(resp$func),], aes(x = func, y = log2FoldChange)) +
+           geom_point(position = position_jitter(width = 0.4), color = "black", alpha=5/100, shape = ".") +
+           geom_boxplot(width = 0.8, fill = NA, color = "black", outlier.shape = NA)+
+           ylim(-xmax, xmax)+
+           coord_flip()+
+           theme_bw(base_size=6)+ 
+           theme(axis.title.x=element_blank(),
+                 axis.title.y=element_blank(),
+                 axis.text.x=element_blank(),
+                 axis.ticks.x=element_blank(),
+                 axis.text.y=element_blank(),
+                 axis.ticks.y=element_blank(),
+                 panel.border = element_blank(),
+                 panel.grid.major.y = element_blank(),
+                 panel.grid.minor.y = element_blank())
+p
+fname=paste(ENS_file,'_box_func',sep="")
+ggsave(paste(fname,'.pdf',sep=''),p, width = 3,height=3)#inch
+ggsave(paste(fname,'.tiff',sep=''),p, width = 3,height=3,dpi=300)#inch  
+  
+# }
+```
+
+
+
+##MA-plot: not used, for illustration only
+```{r}
+ax = plotMA(resc, ylim=c(-4,4),asp=1, alpha=alpha_FDR)
+```
+
+
+## SessionInfo
+```{r}
+sessionInfo()
+```
+
+##NOT USED: Scraps below
+
+### TODO OPTIONAL: Output merged input data and Wald statistics
+Wald statistics for visualizations (depends on model design, but not contrast): following used
+DE_design = ~ age + age:donor.n + age:condition
+```{r, include=FALSE}
+#normalized counts
+output_file = counts(ddsc, normalized=TRUE)
+output_file = as.data.frame(output_file)
+output_file$symbol = cts[rownames(output_file),'symbol']
+write.csv(output_file, 
+          file = paste(path,'DEseq2/','DEseq2_',Treatment,'_res_',Donor,'_merged_norm_counts.csv',sep=""),
+          row.names=TRUE,quote=FALSE)
+
+#Wald statistics
+output_file = ddsc
+rowData(output_file)$symbol <- cts[rownames(output_file),'symbol']
+output_file = as.data.frame(mcols(output_file))
+write.csv(output_file, 
+          file = paste(path,'DEseq2/','DEseq2_',Treatment,'_res_',Donor,'_stats.csv',sep=""),
+          row.names=TRUE,quote=FALSE)
+
+```
+
+##Save workspace
+to prevent having to run all over again
+```{r, include=FALSE}
+# filename=paste("/Users/ri23/Documents/HMS/Kim_lab/",Treatment,"_DEseq2_20200923_whole_workspace.Rdata",sep="")##change timepoint accordingly for saving
+# # save.image(file=filename)
+# #To restore your workspace
+# load(filename)
+```
+
+## Fisher Exact test to compare old and young SCV2
+resc has old baseline, 
+DE_contrast = list("ageyoung.conditiontreated","age_young_vs_old")
+enst = DE genes of young as baseline
+```{r, include=FALSE}
+
+# res_base_y_os = resc[!is.na(resc$padj),]
+# res_base_y_os_DE = res_base_y_os[res_base_y_os$padj<alpha_FDR,]
+# res_base_y_oc = resc[!is.na(resc$padj),]
+# res_base_y_oc_DE = res_base_y_oc[res_base_y_oc$padj<alpha_FDR,]
+
+# res_base_o_ys = resc[!is.na(resc$padj),]
+# res_base_o_ys_DE = res_base_o_ys[res_base_o_ys$padj<alpha_FDR,]
+# res_base_o_yc = resc[!is.na(resc$padj),]
+# res_base_o_yc_DE = res_base_o_yc[res_base_o_yc$padj<alpha_FDR,]
+
+X=matrix(0,nrow=2,ncol=2)#NOT contigency table!
+X[1,1]=dim(res_base_o_ys)[1] #dim(res_base_y_os)[1]#dim(res_base_o_ys)[1] #
+X[1,2]=dim(res_base_o_ys_DE)[1]  #dim(res_base_y_os_DE)[1]#dim(res_base_o_ys_DE)[1]#dim(res_base_y_os_DE)[1]
+X[2,1]=dim(res_base_o_yc_DE)[1]# dim(res_base_o_ys_DE)[1] #dim(res_base_y_oc_DE)[1] #old SCV2 DE genes #length(HUGO_testlist)
+X[2,2]=length(intersect(rownames(res_base_y_ys_DE),rownames(res_base_o_yc_DE)))#res_base_o_ys_DE),rownames(res_base_o_yc_DE)))#rownames(res_base_y_os_DE),rownames(res_base_y_oc_DE)))
+
+Y=matrix(0,nrow=2,ncol=2)#contingency table (see N4p145)
+Y[1,1]=X[2,2]
+Y[1,2]=X[2,1]-X[2,2]
+Y[2,1]=X[1,2]-X[2,2]
+Y[2,2]=X[1,1]-X[1,2]-X[2,1]+X[2,2]
+fisher.test(Y)
+```
+
+##Visualize DEseq results for a Gene Of Interest
+from gene name to results
+```{r, include=FALSE}
+#, include=FALSE}
+ddsc_temp=ddsc 
+gNAME='IFITM2'#'FURIN'#'TMPRSS2' #'KDELR1' #'IFITM3' # 
+
+ensID = rownames(cts[which(cts[,'symbol']==gNAME),])
+
+# cts[ensID,]#raw data
+# resc[ensID,]#DE results
+
+# plotCounts(ddsc_temp, gene=ensID, intgroup="condition", normalized=TRUE)
+plotCounts(ddsc_temp, gene=ensID, intgroup="age", normalized=TRUE, main=paste('Treatment:',Treatment,'gene:',gNAME,ensID))
+# ensID
+```
+
+### Read in results
+```{r, include=FALSE}
+filename = 'DEseq2_res_mock_contrast_age_old_vs_young.csv'
+enst =read.csv(paste(path,'featurecounts/',filename,sep=""), sep=',', header = TRUE, row.names = 1)
+```
+
+
+### output overlap
+```{r, include=FALSE}
+ensID_base_y_os_NOToc_DE = setdiff(rownames(res_base_y_os_DE),rownames(res_base_y_oc_DE))
+ensID_base_o_ys_NOTyc_DE = setdiff(rownames(res_base_o_ys_DE),rownames(res_base_o_yc_DE))
+length(intersect(ensID_base_y_os_NOToc_DE,ensID_base_o_ys_NOTyc_DE))
+
+ENS_file=paste(path,'DEseq2_',Treatment,'_res_base_y_os_NOToc_DE',sep="")
+output_file = res_base_y_os_DE[ensID_base_y_os_NOToc_DE,]
+write.csv(output_file, file = paste(ENS_file,'.csv',sep=''),row.names=TRUE,quote=FALSE)
+
+ENS_file=paste(path,'DEseq2_',Treatment,'_res_base_o_ys_NOTyc_DE',sep="")
+output_file = res_base_o_ys_DE[ensID_base_o_ys_NOTyc_DE,]
+write.csv(output_file, file = paste(ENS_file,'.csv',sep=''),row.names=TRUE,quote=FALSE)
+```
