@@ -1,0 +1,266 @@
+---
+title: "AXSNF03-GI-map-analysis-cleaned"
+output: html_notebook
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggrepel)
+library(viridis)
+```
+
+```{r}
+#load screen-processing phenotypes and p-values
+sgDDX3_genetable <- read.table("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF03/process_experiments_python3/AXSNF03_sgDDX3_results/AXSNF03_sgDDX3_results_genetable_collapsed.txt", sep='\t', skip = 4, header=FALSE, fill=TRUE)
+sgGal4_genetable <- read.table("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF03/process_experiments_python3/AXSNF03_sgGal4_results/AXSNF03_sgGal4_results_genetable_collapsed.txt", sep='\t', skip = 4, header=FALSE, fill=TRUE)
+
+colnames(sgDDX3_genetable) <- c("gene","gamma_Rep1_transcripts","gamma_Rep1_Mann-Whitney p-value","gamma_Rep1_average phenotype of strongest 3","gamma_Rep1_sgRNA count_MW","gamma_Rep1_sgRNA count_avg","gamma_Rep2_transcripts","gamma_Rep2_Mann-Whitney p-value","gamma_Rep2_average phenotype of strongest 3","gamma_Rep2_sgRNA count_MW","gamma_Rep2_sgRNA count_avg","gamma_ave_Rep1_Rep2_transcripts","gamma_ave_Rep1_Rep2_Mann-Whitney p-value","gamma_ave_Rep1_Rep2_average phenotype of strongest 3","gamma_ave_Rep1_Rep2_sgRNA count_MW","gamma_ave_Rep1_Rep2_sgRNA count_avg")
+
+colnames(sgGal4_genetable) <- c("gene","gamma_Rep1_transcripts","gamma_Rep1_Mann-Whitney p-value","gamma_Rep1_average phenotype of strongest 3","gamma_Rep1_sgRNA count_MW","gamma_Rep1_sgRNA count_avg","gamma_Rep2_transcripts","gamma_Rep2_Mann-Whitney p-value","gamma_Rep2_average phenotype of strongest 3","gamma_Rep2_sgRNA count_MW","gamma_Rep2_sgRNA count_avg","gamma_ave_Rep1_Rep2_transcripts","gamma_ave_Rep1_Rep2_Mann-Whitney p-value","gamma_ave_Rep1_Rep2_average phenotype of strongest 3","gamma_ave_Rep1_Rep2_sgRNA count_MW","gamma_ave_Rep1_Rep2_sgRNA count_avg")
+
+sgDDX3_neg_ctrls <- read.table("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF03/process_experiments_python3/AXSNF03_sgDDX3_results/AXSNF03_sgDDX3_results_phenotypetable.txt", sep='\t', skip = 3, header=FALSE, fill=TRUE)
+colnames(sgDDX3_neg_ctrls) <- c("gene", "gamma_Rep1", "gamma_Rep2", "gamma_ave_Rep1_Rep2")
+sgGal4_neg_ctrls <- read.table("/Users/albert/Dropbox/Floor_Lab/Analysis/AXSNF03/process_experiments_python3/AXSNF03_sgGal4_results/AXSNF03_sgGal4_results_phenotypetable.txt", sep='\t', skip = 3, header=FALSE, fill=TRUE)
+colnames(sgGal4_neg_ctrls) <- c("gene", "gamma_Rep1", "gamma_Rep2", "gamma_ave_Rep1_Rep2")
+```
+
+```{r}
+#sgDDX3X p value and phenotype distribution
+ggplot(data=sgDDX3_genetable, aes(x=`gamma_ave_Rep1_Rep2_average phenotype of strongest 3`, y=`gamma_ave_Rep1_Rep2_Mann-Whitney p-value`)) + geom_point(shape = 16, alpha = 0.4)
+ggplot(data=sgDDX3_genetable, aes(x=`gamma_ave_Rep1_Rep2_average phenotype of strongest 3`)) + geom_histogram(bins=100)
+
+#sgGal4 p value and phenotype distribution
+ggplot(data=sgGal4_genetable, aes(x=`gamma_ave_Rep1_Rep2_average phenotype of strongest 3`, y=`gamma_ave_Rep1_Rep2_Mann-Whitney p-value`)) + geom_point(shape = 16, alpha = 0.4)
+ggplot(data=sgGal4_genetable, aes(x=`gamma_ave_Rep1_Rep2_average phenotype of strongest 3`)) + geom_histogram(bins=100)
+```
+
+
+```{r}
+#combine screen data
+combined_df <- data.frame(cbind(as.character(sgGal4_genetable$gene),
+                     sgGal4_genetable$`gamma_ave_Rep1_Rep2_average phenotype of strongest 3`,
+                     sgGal4_genetable$`gamma_ave_Rep1_Rep2_Mann-Whitney p-value`,
+                     sgDDX3_genetable$`gamma_ave_Rep1_Rep2_average phenotype of strongest 3`, 
+                     sgDDX3_genetable$`gamma_ave_Rep1_Rep2_Mann-Whitney p-value`))
+colnames(combined_df) <- c("gene", 
+                           "sgGal4_gamma_average_strongest_3", 
+                           "sgGal4_MannWhitney_p_value",
+                           "sgDDX3_gamma_average_strongest_3", 
+                           "sgDDX3_MannWhitney_p_value")
+
+factor_to_numeric <- function(factor_vector) {
+  return(as.numeric(as.character(factor_vector)))
+}
+combined_df$gene <- as.character(combined_df$gene)
+combined_df$sgGal4_gamma_average_strongest_3 <- factor_to_numeric(combined_df$sgGal4_gamma_average_strongest_3)
+combined_df$sgGal4_MannWhitney_p_value <- factor_to_numeric(combined_df$sgGal4_MannWhitney_p_value)
+
+combined_df$sgDDX3_gamma_average_strongest_3 <- factor_to_numeric(combined_df$sgDDX3_gamma_average_strongest_3)
+combined_df$sgDDX3_MannWhitney_p_value <- factor_to_numeric(combined_df$sgDDX3_MannWhitney_p_value)
+
+combined_neg_ctrls_df <- data.frame(cbind(as.character(sgGal4_neg_ctrls$gene),
+                                          sgGal4_neg_ctrls$gamma_ave_Rep1_Rep2,
+                                          sgDDX3_neg_ctrls$gamma_ave_Rep1_Rep2))
+colnames(combined_neg_ctrls_df) <- c("gene","sgGal4_gamma_ave", "sgDDX3_gamma_ave")
+combined_neg_ctrls_df$sgGal4_gamma_ave <- as.numeric(combined_neg_ctrls_df$sgGal4_gamma_ave)
+combined_neg_ctrls_df$sgDDX3_gamma_ave <- as.numeric(combined_neg_ctrls_df$sgDDX3_gamma_ave)
+combined_neg_ctrls_df <- combined_neg_ctrls_df[grep("non-targeting",combined_neg_ctrls_df$gene),]
+```
+
+```{r}
+#assign significance by MW p-value
+combined_df$significant <- "not_significant"
+combined_df$significant[which(combined_df$sgGal4_MannWhitney_p_value < 0.05)] <- "sgGal4"
+combined_df$significant[which(combined_df$sgDDX3_MannWhitney_p_value < 0.05)] <- "sgDDX3"
+combined_df$significant[which(combined_df$sgDDX3_MannWhitney_p_value < 0.05 & combined_df$sgGal4_MannWhitney_p_value < 0.05)] <- "both"
+
+combined_df_sig <- combined_df[which(combined_df$significant != "not_significant"),]
+```
+
+```{r}
+### SAVE PLOTS/Tables ###
+ggsave("Gal4_vs_DDX3_all.pdf", ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3,
+                             y=sgDDX3_gamma_average_strongest_3,
+                             color=significant)) +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_text(aes(label=gene), hjust=0, vjust=0) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_bw(), width=40, height=40
+)
+ggsave("Gal4_vs_DDX3_significant.pdf", ggplot(data=combined_df_sig,
+                                  aes(x=sgGal4_gamma_average_strongest_3,
+                             y=sgDDX3_gamma_average_strongest_3,
+                             color=significant)) +
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_text(aes(label=gene), hjust=0, vjust=0) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_bw(), width=40, height=40
+)
+write.csv(combined_df, "top3_avg_gamma_gal4_vs_ddx3.csv")
+```
+
+```{r}
+combined_df$labels <- ""
+# gene_list = c("HSPA9", "C3ORF17", "AARS", "CLTC", "DDX3X")
+# gene_list=c("TRIM28", "METTL23")
+gene_list=c("NUP160", "CNOT1", "NXF1")
+combined_df$labels[which(combined_df$gene %in% gene_list)] <- combined_df$gene[which(combined_df$gene %in% gene_list)]
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3,
+                             y=sgDDX3_gamma_average_strongest_3,
+                             color=significant, label=labels)) +
+  # scale_color_viridis(discrete=TRUE, option="viridis") +
+    scale_color_manual(values=c('both'='#D66B1F',
+                                'not_significant'='gray',
+                                'sgDDX3'='#B80000',
+                                'sgGal4'='#1D5386')) +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7) +
+  geom_text_repel(max.overlaps=Inf, min.segment.length = 0, segment.color = "black", hjust=1) +
+  coord_equal() +
+  theme(text = element_text(size = 15)) +
+  geom_point(data=combined_neg_ctrls_df, aes(x=sgGal4_gamma_ave, y=sgDDX3_gamma_ave, label=NA), colour='#9E2E93', alpha=0.5, shape=18)
+```
+
+```{r}
+# GI map quadratic curve fitting and quantifying GI
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3)) +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7) +
+  stat_smooth(method="lm", formula = y~x + I(x^2), size=1)
+
+f <- function(x) -0.101584*x^2+0.183626*x - 0.006341
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3, color=significant)) +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7) +
+  stat_function(fun=f, color="blue")
+```
+
+```{r}
+linearModel <- lm(sgDDX3_gamma_average_strongest_3 ~ sgGal4_gamma_average_strongest_3, data=combined_df)
+summary(linearModel)
+
+combined_df$sgGal4_gamma_average_strongest_3_squared <- combined_df$sgGal4_gamma_average_strongest_3^2
+quadraticModel <- lm(sgDDX3_gamma_average_strongest_3 ~ sgGal4_gamma_average_strongest_3 + sgGal4_gamma_average_strongest_3_squared, data=combined_df)
+summary(quadraticModel)
+```
+
+```{r}
+combined_df$y_quad <- -0.101584 * combined_df$sgGal4_gamma_average_strongest_3^2 + 0.183626 * combined_df$sgGal4_gamma_average_strongest_3 - 0.006341
+combined_df$distance_from_curve <- combined_df$y_quad - combined_df$sgDDX3_gamma_average_strongest_3
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3, color=distance_from_curve)) +
+  scale_color_viridis(discrete=FALSE, option="magma") +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7) +
+  stat_smooth(method="lm", formula = y~x + I(x^2), size=1)
+
+ggplot(data=combined_df, aes(x=`distance_from_curve`)) + geom_histogram(bins = 150)
+
+distance_stddev <- sd(combined_df$distance_from_curve)
+distance_mean <- mean(combined_df$distance_from_curve)
+
+ggplot(data=combined_df, aes(x=`distance_from_curve`)) + 
+  geom_histogram(bins = 150) +
+  geom_vline(xintercept=distance_mean+2*distance_stddev,color="blue")+
+  geom_vline(xintercept=distance_mean-2*distance_stddev,color="blue")+
+  geom_vline(xintercept=distance_mean+3*distance_stddev,color="light blue")+
+  geom_vline(xintercept=distance_mean-3*distance_stddev,color="light blue")
+```
+
+```{r}
+#pseudo gene distribution = control distribution generated. 3,709 non-targeting guides. 5 randomly picked 18,905 times to generate negative control distribution.
+combined_df$pseudo <- "genes"
+combined_df$pseudo[grep("pseudo_", combined_df$gene)] <- "pseudo_genes"
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3, 
+                             color=significant)) +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7)
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3, 
+                             color=pseudo)) +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7)
+
+pseudo_subset <- combined_df[which(combined_df$pseudo == "pseudo_genes"),]
+genes_subset <- combined_df[which(combined_df$pseudo == "genes"),]
+
+ggplot(combined_df, aes(x=distance_from_curve)) + geom_histogram(bins=150)
+# ggplot(combined_df, aes(x=distance_from_curve)) + geom_histogram(bins=150) + facet_wrap(~ pseudo)
+ggplot(combined_df, aes(x=distance_from_curve, color=pseudo)) + geom_histogram(bins=150)
+
+ggplot(combined_df, aes(x=distance_from_curve)) + geom_histogram(bins=150)+
+  geom_histogram(bins=150) +
+  geom_vline(xintercept=-0.8,color="blue") +
+  geom_vline(xintercept=0.8,color="blue")
+
+ggplot(combined_df, aes(x=distance_from_curve, color=pseudo)) + 
+  geom_histogram(bins=150) +
+  geom_vline(xintercept=-0.8,color="blue") +
+  geom_vline(xintercept=0.8,color="blue")
+
+ggplot(combined_df, aes(x=distance_from_curve, color=pseudo)) + geom_freqpoly(bins=150)
+table(combined_df$pseudo)
+
+
+combined_df$GO_cutoff <- "neither"
+combined_df$GO_cutoff[which(combined_df$distance_from_curve < -0.8)] <- "buffering"
+combined_df$GO_cutoff[which(combined_df$distance_from_curve > 0.8)] <- "synthetic"
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3, 
+                             color=GO_cutoff)) +
+  # scale_color_viridis(discrete=TRUE, option="viridis") +
+  scale_color_manual(values=c("buffering" = "#FEF5A4",
+                              "neither" = "#A9BBCA",
+                              "synthetic" = "#ADDEC2")) +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 2) +
+  coord_equal() +
+  theme(text = element_text(size = 15))
+
+ggplot(data=combined_df, aes(x=sgGal4_gamma_average_strongest_3, 
+                             y=sgDDX3_gamma_average_strongest_3, 
+                             color=GO_cutoff)) +
+  scale_color_viridis(discrete=TRUE, option="viridis") +
+  theme_bw()+
+  geom_point(shape = 16, alpha = 0.7)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
