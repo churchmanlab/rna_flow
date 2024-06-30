@@ -3,14 +3,14 @@
 
 # ## Machine learning to explain rates
 # Author: Robert Ietswaart  
-# Date: 20230329  
+# Date: 20240122  
 # License: BSD2.  
 # Python v3.7.4
 # 
-# Source: `ML_20220618_subcell_feat_select1.py`  
+# Source: `ML_20230329_subcell_feat_select1.py`  
 # For RNA flow project.
 # See also corresponding slurm batch script which calls this .py script: 
-# ML_20230329_subcell_feat_select1.sh
+# ML_20240122_subcell_feat_select1.sh
 
 import os
 import re
@@ -23,7 +23,6 @@ import logging
 import argparse
 
 from sklearn.model_selection import train_test_split, KFold
-from sklearn.ensemble import RandomForestRegressor
 from sklearn import linear_model
 
 from __init__ import default_logger_format, default_date_format
@@ -57,12 +56,12 @@ def main():
 
     args = parser.parse_args()
 
-    path = os.path.join('/n','groups','churchman','ri23','bseq','ML20230329')
+    path = os.path.join('/n','groups','churchman','ri23','bseq','ML20240122')
     feature_path = os.path.join('/n','groups','churchman','ri23','bseq','RF20220426','features')
 
     # Add a logger specific to the project and processing stage
     logger = logging.getLogger('ML')
-    log_file = os.path.join(path,'LogErr', 'ML_20230329_subcell_select1_k_%s_feat%s_py.log' % (args.rate, str(args.feats)))
+    log_file = os.path.join(path,'LogErr', 'ML20240122_subcell_select1_k_%s_feat%s_py.log' % (args.rate, str(args.feats)))
     formatter = logging.Formatter(default_logger_format,
                                   datefmt=default_date_format)
     log_handler = logging.FileHandler(log_file)
@@ -99,10 +98,10 @@ def main():
 
     o = 'h'
     # for o in organisms:    
-    path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20230128')
-    filename_b = 'Bayes_Rates_20230128_'+ org_map[o] + '.tsv'
-    path_k = os.path.join('/n','groups','churchman','ri23','bseq','BayesFactor20221206')
-    filename_k = 'Bayes_factor_20230317_' + org_map[o] + '_final.tsv'
+    path_b = os.path.join('/n','groups','churchman','ri23','bseq','Bayes20240120_K562')
+    filename_b = 'Bayes_Rates_20240120_'+ org_map[o] + '_final.tsv'
+    path_k = os.path.join('/n','groups','churchman','ri23','bseq','BayesFactor20240112')
+    filename_k = 'Bayes_factor_20240112_' + org_map[o] + '_final.tsv'
 
     B[o] = pd.read_csv(os.path.join(path_b, filename_b), sep='\t')
     K[o] = pd.read_csv(os.path.join(path_k, filename_k), sep='\t')
@@ -124,12 +123,12 @@ def main():
     for ot in OUT_TYPES:
         for rr in org_red_reps[o]:
             ts = rt + 'chr_release'
-            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg'+ot].where(
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg.MAP'].where(
                     C[o]['PUND'], C[o][rr+'.'+rt+'chr'+ot]))
             ts = rt + 'nucdeg'#only for nucdeg genes according to Bayes Factor
-            C[o][rr+'.'+ts+ot].where(C[o]['PUND'], np.nan, inplace=True)
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'.MAP'].where(C[o]['PUND'], np.nan))
             ts = rt + 'nucexp'
-            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg'+ot].where(
+            C[o][rr+'.'+ts+ot] = copy.deepcopy(C[o][rr+'.'+ts+'_from_nucdeg.MAP'].where(
                 C[o]['PUND'], C[o][rr+'.'+ts+'_from_nucres'+ot])) 
 
 

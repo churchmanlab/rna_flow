@@ -2,13 +2,13 @@
 #Robert Ietswaart 
 #sbatch job to run ML on subcellular rates for feature selection round 1.
 
-date=20230329
+date=20240122
 
 program=python
 script=ML_${date}_subcell_feat_select1.py
 
 notifEm=robert_ietswaart@hms.harvard.edu
-baseDir=/n/groups/churchman/ri23/bseq/ML20230329
+baseDir=/n/groups/churchman/ri23/bseq/ML${date}
 scDir=/n/groups/churchman/ri23/code/
 
 module load gcc/6.2.0
@@ -17,6 +17,7 @@ module load java/jdk-1.8u112
 
 cd ${scDir}
 mkdir -p ${baseDir}/LogErr
+mkdir -p ${baseDir}/select_features
 
 nthread=1 
      
