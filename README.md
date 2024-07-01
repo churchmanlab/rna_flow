@@ -60,12 +60,8 @@ TCconversion_from_background_20231125_K562.sh
 which calls: TCconversion_from_background_20231125_K562.py  
 
 ### Rerun GRAND-SLAM with pc / pe estimates from binomial mixture model for top and bottom.  
-copy the GS_run1 folder to new folders top and bottom
-remove the previous GS output files: [sample].tsv and [sample].ext.tsv
-in top/bottom folders: replace the pc values with our respective top/bottom estimates into *.rates.tsv file in the rows single_new and double_new
-then
-For the -4sU timepoint (sample *1): replace the pc values with the 15min timepoint for consistency (it does not matter what it is though, since we do not analyse that timepoint).
-remove the GS output files  
+Copy the GS_run1 folder to new folders top and bottom. Remove the previous GS output files: [sample].tsv and [sample].ext.tsv
+in top/bottom folders. Replace the pc values with our respective top/bottom estimates into *.rates.tsv file in the rows single_new and double_new.  
 run_grandslam.sh  
 
 Merge GS top and bottom results (used for visualizations in MS)  
@@ -172,7 +168,7 @@ NucWash_STAR_parameters.in
 Get gene counts from alignments using featurecounts  
 NucWash_featureCounts_20231005.sh  
 
-Confirm that yeast spike in transcripts are in alignments (optional) 
+Confirm that yeast spike in transcripts are in alignments (optional)  
 NucWash_inspect_bam_20231005.sh  
 
 Perform DE and PCA with spike in  
