@@ -15,16 +15,16 @@ https://doi.org/10.1016/j.molcel.2024.06.008
 cutadapt.sh
 
 ### STAR alignment
-make_STAR_dirs.sh
-run_align_human_ii.sh
-which calls: align_human.sh
+make_STAR_dirs.sh  
+run_align_human_ii.sh  
+which calls: align_human.sh  
 
 ### GRAND-SLAM (with default parameters):
-bamToCIT_human_ii.sh
-run_grandslam_human_ii_12combined.sh
+bamToCIT_human_ii.sh  
+run_grandslam_human_ii_12combined.sh  
 
 ### Pc estimation
-1.  
+1. 
 submit_process_n_k_turnover_WT_2023_h.sh  
 which calls:  
 process_n_k_turnover_WT_2023_h.sh  
@@ -34,19 +34,19 @@ modifyBed.R
 MismatchScripts_batchSubmission/sortReads_byName_noSingles.R  
 bottom500genes_turnover.R  
 
-2.  
+2. 
 submit_parallel_findMM_h_i_rerun1.sh  
 which calls: findMismatches_complete_23_11_14_RI_variableGenome.R  
 
-3.  
+3. 
 prerun_MM_per_fragment_h_i.sh  
 which calls: sortReads_byName_23_11_19_RI.R  
 
-4.  
+4. 
 submit_run_MM_per_fragment_[m|h]_[i|ii|iii|iv].sh  
 which calls: MM_per_fragment_23-11-19_RI_batchSubmit.R  
 
-5. in the folders *MM_temp_turnover*  
+5. In the folders *MM_temp_turnover*  
 run_shorten_fragments.sh  
 
 6. Generate the T>C mismatch frequency matrices.  
@@ -105,7 +105,7 @@ Timescale_Bayes_20240120_merge_nucdeg.sh
 which calls: Timescale_Bayes_20240120_merge_nucdeg.py  
 
 ### Bayes Factor calculations
-4 compartment Bayes factor calculation
+Four compartment Bayes factor calculation
 Bayes_factor4_20231213_K562_i.sh  
 which calls: Bayes_factor4_20231213.py  
 
@@ -128,7 +128,7 @@ Merge BF4 batches:
 Bayes_factor4_20231213_merge.sh  
 which calls: Bayes_factor4_20231213_merge.py  
 
-3 compartment Bayes factor calculation
+Three compartment Bayes factor calculation
 Bayes_factor3_20240110_K562_i.sh  
 which calls: Bayes_factor3_20240110.py  
 
