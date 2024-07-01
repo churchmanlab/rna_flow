@@ -21,18 +21,11 @@ def calc_res(k_fit, model, times, lam_obs, k_para=None):
        model : function describing mathematical model
        """
     if model in [ntr.lam_chr,
-                 ntr.lam_nucpl,
                  ntr.lam_nuc,
-                 ntr.lam_nuc_from_chr,
-                 ntr.lam_cyto,
-                 ntr.lam_cyto_from_chr,
-                 ntr.lam_total,
-                 ntr.lam_poly,
-                 ntr.lam_poly_from_chr,
-                 ntr.lam_total,
+                 ntr.lam_cyto,  
+                 ntr.lam_poly,       
                  ntr.lam_total_one_step,
-                 ntr.lam_total_from_chr,
-                 ntr.TCconv]:
+                 ntr.TCconv]:#ntr.lam_nucpl, ntr.lam_nuc_from_chr, ntr.lam_cyto_from_chr, ntr.lam_total,ntr.lam_poly_from_chr,ntr.lam_total_from_chr,
         lam_predict = model(k_fit, times, k_para)
     elif model in [np.poly1d]:
         poly = model(k_fit)
@@ -79,6 +72,19 @@ def calc_res_3var(k, model1, model2, model3, times, lam_obs):
 def calc_res_matrix(params, model, observations, fixed_params):
     return np.concatenate((model(params, observations, fixed_params) - observations), axis=None)
 
+# def calc_res(k, model, times, ,lam_obs):
+#     """Calculate Residual
+#        for input model
+#        lam_obs : observed new to total ratio lambda
+#        k : list with parameters of model
+#        times : list with observed time points >0
+#        model : function with model as argument #1 or 2 indicating the state of the model
+#        """
+#     lam_predict = model(k, times)
+#     eps = 1e-16
+#     res = lam_predict - lam_obs
+#     return res
+
 def _aic(n,k,rss):
     """first equation on page e7 of McShane et al
        k : number of parameters in model"""
@@ -104,7 +110,7 @@ def calc_aic(n, rss1, rss2, k1, k2):
 
 def get_tc_types_for_gene_jit(gene, r, fr, GS_keys, TB):
     suffix = '_below'
-    TC_TYPES_gene = []
+    TC_TYPES_gene = np.asarray([])
     if r+fr+'top1000' in GS_keys:
         TC_TYPES_gene = np.asarray([1,0], dtype='int32')
         if gene.startswith('ENSMUSG') or gene.startswith('ENSG'):
@@ -118,3 +124,20 @@ def get_tc_types_for_gene_jit(gene, r, fr, GS_keys, TB):
              (gene in TB[r+fr+'bottom500'+suffix][id_type].values): 
             TC_TYPES_gene = np.asarray([0], dtype='int32')
     return TC_TYPES_gene
+
+# def get_tc_types_for_gene(gene, r, fr, GS_keys, TB):
+#     suffix = '_below'
+#     TC_TYPES_gene = []
+#     if r+fr+'top1000' in GS_keys:
+#         TC_TYPES_gene = ['top1000','bottom500']
+#         if gene.startswith('ENSMUSG') or gene.startswith('ENSG'):
+#             id_type = 'ENS_ID'
+#         else:
+#             id_type = 'Symbol'
+        
+#         if (gene in TB[r+fr+'top1000'][id_type].values):
+#             TC_TYPES_gene.remove('bottom500')
+#         elif (gene in TB[r+fr+'bottom500'][id_type].values) or \
+#              (gene in TB[r+fr+'bottom500'+suffix][id_type].values):
+#             TC_TYPES_gene.remove('top1000')   
+#     return TC_TYPES_gene

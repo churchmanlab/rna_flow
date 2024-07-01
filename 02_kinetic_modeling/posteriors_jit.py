@@ -345,3 +345,200 @@ def det_jac_total_from_chr(a, b, kD, kND, t):
 def det_jac_total_from_nucdeg(a, kD, kE, t):
     det = np.absolute(dlam_nuc_dkNR(a, t) * dlam_cyto_from_nuc_dkD(a, kD, t) * dlam_total_from_nucdeg_dkE(a, kD, kE, t))
     return det
+
+# # #OLD: uncomment for backwards compatibility with older versions of scripts
+# @jit(float64(float64, float64), nopython=True, cache=True)
+# def dlam_nucdeg_dk(a, t):
+#     """ Derivative of Lambda with respect to a at t
+#         t: time point (float)
+#         kN: nuclear degradation rate
+#         kE: nuclear export rate
+#         a: kN + kE
+#         der: derivative (np.array), function on k domain
+#     """
+#     der = dlam_1var_da(a, t)
+#     return der
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def dlam_cyto_from_nucdeg_dkD(a, kD, t):
+#     """ Derivative of Lambda with respect to kD at t
+#         t: time point (float) 
+#         kN: nuclear degradation rate
+#         kE: nuclear export rate
+#         a: kN + kE
+#         kD: cytoplasmic residence (degradation) rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     der = dlam_2var_db(a, kD, t)
+#     return der
+
+# @jit(float64(float64, float64), nopython=True, cache=True)
+# def det_jac_nucdeg(a, t):
+#     det = dlam_nucdeg_dk(a, t)
+#     return det
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def det_jac_cyto_from_nucdeg(a, kD, t):
+#     det = np.absolute(dlam_nucdeg_dk(a, t) * dlam_cyto_from_nucdeg_dkD(a, kD, t))
+#     return det
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def det_jac_total_from_nucdeg(a, kD, kE, t):
+#     det = np.absolute(dlam_nucdeg_dk(a, t) * dlam_cyto_from_nucdeg_dkD(a, kD, t) * dlam_total_from_nucdeg_dkE(a, kD, kE, t))
+#     return det
+
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def dlam_nucpl_dkE(kR, kE, t):
+#     """ Derivative of Lambda with respect to kE at t
+#         t: time point (float)  
+#         kR: chromatin residence (Release) rate
+#         kE: nucleoplasm residence (Export) rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     der = dlam_2var_db(kR, kE, t)
+#     return der
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def dlam_cyto_from_chr_dkD(kR, kE, kD, t):
+#     """ Derivative of Lambda with respect to kR at t
+#         t: time point (float)  
+#         kR: chromatin residence (Release) rate
+#         kE: nucleoplasm residence (Export) rate
+#         kD: cytoplasmic residence (Degradation) rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     eps = 1e-16
+#     a = kR
+#     b = kE
+#     if np.absolute(a - b) <= eps or np.absolute(kD - a) <= eps or np.absolute(kD - b) <= eps:
+#         der = 0 #limit approximation
+#     else:
+#         der = -a * b / ((a - b) * (kD - a)**2) * np.exp(-a * t) + \
+#             a * b / ((a - b) * (kD - b)**2) * np.exp(-b * t) + \
+#             a * b * ((kD - a) * (kD - b))**(-1) * ((kD - a)**(-1) + (kD - b)**(-1) + t) * np.exp(-kD * t)
+#     return der
+
+# @jit(float64(float64, float64, float64, float64, float64), nopython=True, cache=True)
+# def dlam_poly_from_chr_dkL(kR, kE, kD, kL, t):
+#     """ Derivative of Lambda with respect to kR at t
+#         t: time point (float)  
+#         kR: chromatin residence (Release) rate 
+#         kE: nucleoplasm residence (Export) rate 
+#         kD: cytoplasmic residence (Degradation) rate 
+#         kL: transition rate from cytoplasmic into polysome fraction
+#         der: derivative (np.array), function on k domain
+#     """
+#     eps = 1e-16
+#     a = kR
+#     b = kE
+#     c = kD + kL
+#     if np.absolute(a - b) <= eps or np.absolute(a - c) <= eps or np.absolute(b - c) <= eps or \
+#        np.absolute(kD - a) <= eps or np.absolute(kD - b) <= eps or np.absolute(kD - c) <= eps:
+#         der = 0 #limit approximation
+#     else:
+#         dPsi = -a * b * kD * ((a - b) * (c - a)**2 * (kD - a))**(-1)
+#         dPhi = a * b * kD * ((a - b) * (b - c)**2 * (kD - b))**(-1)
+#         dTheta = a * b * kD * ((b - c) * (c - a) * (kD - c))**(-1) * \
+#             ((b - c)**(-1) - (c - a)**(-1) + (kD - c)**(-1))
+#         der = dPsi * np.exp(-a * t) + dPhi * np.exp(-b * t) + \
+#             (dTheta - t) * np.exp(-c * t) - (dPsi + dPhi + dTheta) * np.exp(-kD * t)  
+#     return der
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def det_jac_nucpl(kR, kE, t):
+#     det = np.absolute(dlam_chr_dkR(kR, t) * dlam_nucpl_dkE(kR, kE, t))
+#     return det
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def dlam_nucdeg_dk(kN, kE, t):
+#     """ Derivative of Lambda with respect to k = kN or kE at t
+#         t: time point (float)
+#         kN: nuclear degradation rate
+#         kE: nuclear export rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     der = dlam_1var_da((kN + kE), t)
+#     return der
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def det_jac_cyto_from_chr(kR, kE, kD, t):
+#     det = np.absolute(dlam_chr_dkR(kR, t) * dlam_nucpl_dkE(kR, kE, t) * dlam_cyto_from_chr_dkD(kR, kE, kD, t))
+#     return det
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def dlam_cyto_from_nucdeg_dkD(kN, kE, kD, t):
+#     """ Derivative of Lambda with respect to kD at t
+#         t: time point (float) 
+#         kN: nuclear degradation rate
+#         kE: nuclear export rate
+#         kD: cytoplasmic residence (degradation) rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     der = dlam_2var_db((kN + kE), kD, t)
+#     return der
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def dlam_difftot_dk(kN, kE, kD, t):
+#     """ Difference of derivatives of Lambda with respect to kE and kN at t
+#         t: time point (float) 
+#         kN: nuclear degradation rate
+#         kE: nuclear export rate
+#         kD: cytoplasmic residence (degradation) rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     eps = 1e-16
+#     a = kN + kE
+#     dPsi = kD * (kN - kD) + kE * a
+#     if np.absolute(dPsi) <= eps:
+#         der = 0 #limit approximation
+#     else:
+#         der = dPsi**(-1) * (kD * (1 + (kN - kD) * (a - kD) * dPsi**(-1)) * np.exp(-a * t) + \
+#             a * (kE * (a - kD) * dPsi**(-1) - 1) * np.exp(-kD * t))
+#     return der
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def det_jac_nucdeg(kN, kE, t):
+#     det = dlam_nucdeg_dk(kN, kE, t)
+#     return det
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def det_jac_cyto_from_nucdeg(kN, kE, kD, t):
+#     det = np.absolute(dlam_nucdeg_dk(kN, kE, t) * dlam_cyto_from_nucdeg_dkD(kN, kE, kD, t))
+#     return det
+
+# @jit(float64(float64, float64, float64, float64), nopython=True, cache=True)
+# def det_jac_total_from_nucdeg(kN, kE, kD, t):
+#     det = np.absolute(dlam_nucdeg_dk(kN, kE, t) * dlam_cyto_from_nucdeg_dkD(kN, kE, kD, t) * dlam_difftot_dk(kN, kE, kD, t))
+#     return det
+
+# @jit(float64(float64, float64, float64, float64, float64), nopython=True, cache=True)
+# def det_jac_poly_from_chr(kR, kE, kD, kL, t):
+#     det = np.absolute(dlam_chr_dkR(kR, t) * dlam_nucpl_dkE(kR, kE, t) * \
+#                       dlam_cyto_from_chr_dkD(kR, kE, kD, t) * dlam_poly_from_chr_dkL(kR, kE, kD, kL, t))
+#     return det
+
+#Mitoribo model: transferred to RNAdecay project scripts
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def dlam_ribo_dkL(kL, kD, t):
+#     """ Derivative of Lambda with respect to kL at t
+#         t: time point (float)
+#         kL: ribosome entry rate
+#         kD: mitochondrial RNA degradation rate
+#         der: derivative (np.array), function on k domain
+#     """
+#     eps = 1e-16
+#     if np.absolute(kL) <= eps:
+#         der = 0 #limit approximation
+#     else:
+#         der = kD * kL**(-2) * np.exp(-kD * t) * (1 - (1 + t * kL) * np.exp(-kL * t))
+#     return der
+
+# @jit(float64(float64, float64, float64), nopython=True, cache=True)
+# def det_jac_mitoribo_from_tot(kL, kDtot, t):
+#     det = np.absolute(dlam_ribo_dkL(kL, kDtot, t) * dlam_total_dkDtot(kDtot, t))
+#     return det
+
+# @jit(float64(float64, float64), nopython=True, cache=True)
+# def det_jac_mitototal(kDtot, t):
+#     return dlam_total_dkDtot(kDtot, t)
