@@ -1,39 +1,31 @@
 # RNA flow
 
-Code to accompany the publication in Mol. Cell. (2024) by Ietswaart, Smalec, Xu, et al:  
+Code to accompany publication:  
+Ietswaart, R., Smalec B.M., Xu A., et al, (2024).  
 Genome-wide quantification of RNA flow across subcellular compartments reveals determinants of the mammalian transcript life cycle.  
+Mol. Cell. 84, 1-20  
 https://doi.org/10.1016/j.molcel.2024.06.008  
 
 
 
 
 # 01_subcell_timelapse_seq
-K562 WT chromatin, cytoplasm, and cytoplasm RNA samples
 
-See for more info: 
-Steps for generating [n,k] matrices for TimeLapse-seq analysis.txt 
+### Trim reads with Cutadapt
+cutadapt.sh
 
-## Trim reads with Cutadapt
-cd /n/groups/churchman/bms36/2021-04-07_T_U/cutadapt
-./cutadapt.sh
+### STAR alignment
+make_STAR_dirs.sh
+run_align_human_ii.sh
+which calls: align_human.sh
 
-## STAR:
-cd /n/groups/churchman/bms36/2021-05-16_T_U/STAR_2023
-./make_STAR_dirs.sh
-sbatch run_align_human_ii.sh
+### GRAND-SLAM (with default parameters):
+bamToCIT_human_ii.sh
+run_grandslam_human_ii_12combined.sh
 
-This script calls 
-align_human.sh
-
-## Grand-slam (run with default parameters):
-cd /n/groups/churchman/bms36/2021-05-16_T_U/GS_2023
-sbatch bamToCIT_human_ii.sh
-sbatch run_grandslam_human_ii_12combined.sh
-
-## Pc estimation
+### Pc estimation
 1.  
-cd /n/groups/churchman/bms36/2021-05-16_T_U/STAR_2023  
-sbatch submit_process_n_k_turnover_WT_2023_h.sh  
+submit_process_n_k_turnover_WT_2023_h.sh  
 which calls:  
 process_n_k_turnover_WT_2023_h.sh  
 which calls:  
@@ -43,83 +35,77 @@ MismatchScripts_batchSubmission/sortReads_byName_noSingles.R
 bottom500genes_turnover.R  
 
 2.  
-sbatch submit_parallel_findMM_h_i_rerun1.sh  
+submit_parallel_findMM_h_i_rerun1.sh  
 which calls: findMismatches_complete_23_11_14_RI_variableGenome.R  
 
 3.  
-sbatch prerun_MM_per_fragment_h_i.sh  
+prerun_MM_per_fragment_h_i.sh  
 which calls: sortReads_byName_23_11_19_RI.R  
 
 4.  
-sbatch submit_run_MM_per_fragment_[m|h]_[i|ii|iii|iv].sh  
+submit_run_MM_per_fragment_[m|h]_[i|ii|iii|iv].sh  
 which calls: MM_per_fragment_23-11-19_RI_batchSubmit.R  
 
-5.  
-in the folders *MM_temp_turnover*  
-sbatch run_shorten_fragments.sh  
+5. in the folders *MM_temp_turnover*  
+run_shorten_fragments.sh  
 
-6.  
-Generate the A[n,k] matrices as well as some additional files, including the pdf's to look at T counts, read lengths, and the distribution of number of T>C mismatches.
-cd /n/groups/churchman/bms36/2021-05-16_T_U/n_k_data_2023  
-sbatch run_MM_freq.sh  
+6. Generate the T>C mismatch frequency matrices.  
+run_MM_freq.sh  
 which calls:  
 MM_[rep]_[frac].R  
 MM_[rep]_[frac]_slow.R  
 
-7.  
-Estimate the pc using the binomial mixture model  
-./TCconversion_from_background_20231125_K562.sh  
-which calls: TCconversion_from_background_20231125_K562.py
+7. Estimate the pc using the binomial mixture model  
+TCconversion_from_background_20231125_K562.sh  
+which calls: TCconversion_from_background_20231125_K562.py  
 
-8.  
-Rerun GS with pc / pe estimates from binomial mixture model for top and bottom.  
+### Rerun GRAND-SLAM with pc / pe estimates from binomial mixture model for top and bottom.  
 copy the GS_run1 folder to new folders top and bottom
 remove the previous GS output files: [sample].tsv and [sample].ext.tsv
 in top/bottom folders: replace the pc values with our respective top/bottom estimates into *.rates.tsv file in the rows single_new and double_new
 then
 For the -4sU timepoint (sample *1): replace the pc values with the 15min timepoint for consistency (it does not matter what it is though, since we do not analyse that timepoint).
 remove the GS output files  
-sbatch run_grandslam.sh
+run_grandslam.sh  
 
-9.  
-Merge GS top and bottom results into one output file (used for visualizations in MS)    
-./GS20231201_MAP_CIs_from_topbottom_K562.sh  
+Merge GS top and bottom results (used for visualizations in MS)  
+GS20231201_MAP_CIs_from_topbottom_K562.sh  
 which calls: GS20231201_MAP_CIs_from_topbottom.py  
 
 
 # 02_kinetic_modeling
-### 0. Generate a list of genes with GS data to analyze
-./Timescale_Bayes_20231201_prerun.sh  
+0. Generate a list of genes with GS data to analyze  
+Timescale_Bayes_20231201_prerun.sh  
 which calls: Timescale_Bayes_20231201_prerun.py  
 
-### 1. Batch run i
-./Timescale_Bayes_20240119_K562_i.sh  
+1. Batch run i  
+Timescale_Bayes_20240119_K562_i.sh  
 which calls: Timescale_Bayes_20240119.py  
 
-### 2. Batch run ii  
-./Timescale_Bayes_20240119_K562_ii.sh  
+2. Batch run ii  
+Timescale_Bayes_20240119_K562_ii.sh  
 which calls:  
 Timescale_Bayes_20240119_rerun.py  
 Timescale_Bayes_20240119_rerun_no_nucdeg.py  
 
-### 3.0. Merge batch rate files into 1 file and discards redundant data columns
-./Timescale_Bayes_20240119_merge.sh  
+3.0. Merge batch rate files  
+Timescale_Bayes_20240119_merge.sh  
 which calls: Timescale_Bayes_20240191_merge.py  
 
-### 3.1. Identify the genes that need a rerun for nucdeg rates
-./Timescale_Bayes_20240120_iii_prerun.sh  
+3.1. Identify the genes that need a rerun for nucdeg rates  
+Timescale_Bayes_20240120_iii_prerun.sh  
 which calls: Timescale_Bayes_20240120_iii_prerun.py  
 
-### 3.2 Run iii for nucdeg rates
-./Timescale_Bayes_20240120_K562_iii.sh  
+3.2 Run iii for nucdeg rates  
+Timescale_Bayes_20240120_K562_iii.sh  
 which calls: Timescale_Bayes_20240120_nucdeg.py  
 
-### 4. Merge missing nucdeg rates into rate file 
-./Timescale_Bayes_20240120_merge_nucdeg.sh  
+4. Merge missing nucdeg rates into rate file  
+Timescale_Bayes_20240120_merge_nucdeg.sh  
 which calls: Timescale_Bayes_20240120_merge_nucdeg.py  
 
-## Bayes Factor calculations
-### 4 compartment Bayes factor calculation
+### Bayes Factor calculations
+4 compartment Bayes factor calculation
 Bayes_factor4_20231213_K562_i.sh  
 which calls: Bayes_factor4_20231213.py  
 
@@ -138,11 +124,11 @@ which calls: Bayes_factor4_20231213_iv_prerun.py
 Bayes_factor4_20231213_K562_iv.sh  
 which calls: Bayes_factor4_20231213_rerun.py  
 
-### merge BF4 batches:  
+Merge BF4 batches:  
 Bayes_factor4_20231213_merge.sh  
 which calls: Bayes_factor4_20231213_merge.py  
 
-### 3 compartment Bayes factor calculation
+3 compartment Bayes factor calculation
 Bayes_factor3_20240110_K562_i.sh  
 which calls: Bayes_factor3_20240110.py  
 
@@ -155,11 +141,11 @@ which calls: Bayes_factor3_20240110_iii_prerun.py
 Bayes_factor3_20240110_K562_iii.sh  
 which calls: Bayes_factor3_20240110_rerun.py  
 
-### merge BF3 batches:  
+Merge BF3 batches:  
 Bayes_factor3_20240110_merge.sh  
 which calls: Bayes_factor3_20240110_merge.py  
 
-### merge BF3 and BF4 results:  
+Merge BF3 and BF4 results:  
 Bayes_factor4_20240112_merge_with_BF3.sh  
 which calls: Bayes_factor4_20240112_merge_with_BF3.py  
 
@@ -225,13 +211,13 @@ RNA_flow_alignment_directRNA_ONT.sh
 # 09_subcell_timelapse_isoform
 
 Script to generate a modified gtf for use with GRAND-SLAM:  
-./GS20240122_Get_gene_level_gtf.sh
+GS20240122_Get_gene_level_gtf.sh
 
 Script to generate a GRAND-SLAM index (.oml) file  
-./GS20240122_Get_gedi_oml.sh
+GS20240122_Get_gedi_oml.sh
 
 Scripts to filter all KDii samples and run GRAND-SLAM  
-./GS20240122_Get_bed.sh  
+GS20240122_Get_bed.sh  
 GS20240122_KDii_process_input_files.sh  
 GS20240122_KDii_extract_reads.sh  
 GS20240122_KDii_extract_reads_ii.sh  
