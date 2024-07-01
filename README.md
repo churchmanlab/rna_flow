@@ -232,41 +232,41 @@ Script to generate a GRAND-SLAM index (.oml) file
 
 Scripts to filter all KDii samples and run GRAND-SLAM  
 ./GS20240122_Get_bed.sh  
-./GS20240122_KDii_process_input_files.sh  
-./GS20240122_KDii_extract_reads.sh  
-./GS20240122_KDii_extract_reads_ii.sh  
-./GS20240122_Get_bamlist.sh  
-./GS20240122_KDii_run_GS.sh  
-./GS20240122_MAP_CIs_from_topbottom_KD_ii.sh  
+GS20240122_KDii_process_input_files.sh  
+GS20240122_KDii_extract_reads.sh  
+GS20240122_KDii_extract_reads_ii.sh  
+GS20240122_Get_bamlist.sh  
+GS20240122_KDii_run_GS.sh  
+GS20240122_MAP_CIs_from_topbottom_KD_ii.sh  
 
 Scripts to visualize results  
-./GS20240122_KDii_visualization.R
+GS20240122_KDii_visualization.R  
 
-Scripts for differential expression       
-./GS20240122_featureCounts.sh  
-./GS20240122_DEseq2.Rmd  
+Scripts for differential expression  
+GS20240122_featureCounts.sh  
+GS20240122_DEseq2.Rmd  
 
 Retained introns GRAND-SLAM control runs  
-./GS20240122_Get_retained_intron_gtf.sh  
-./GS20240122_Get_RI_gedi_oml.sh  
+GS20240122_Get_retained_intron_gtf.sh  
+GS20240122_Get_RI_gedi_oml.sh  
   
 scr pc parameter sweep control runs  
-./GS20240305_Get_pc_files_folders.sh  
-./GS20240305_KDii_run_GS.sh  
+GS20240305_Get_pc_files_folders.sh  
+GS20240305_KDii_run_GS.sh  
 Comparison_GS_KDii_20240305.ipynb  
 
 Final run for MS  
-./GS20240309_Get_pc_files_folders.sh
-./GS20240309_KDii_run_GS.sh
+GS20240309_Get_pc_files_folders.sh  
+GS20240309_KDii_run_GS.sh  
 
 
 # 10_lasso
 First round of feature selection using individual feature classes with lasso regression  
-./ML_20240122_subcell_feat_select1.sh  
+ML_20240122_subcell_feat_select1.sh  
 which calls: ML_20240122_subcell_feat_select1.py
 
 Second round feature selection using the union of features selected in round 1  
-./ML_20240122_subcell_feat_select2.sh
+ML_20240122_subcell_feat_select2.sh  
 which calls: ML_20240122_subcell_feat_select2.py
 
 Optimal hyperparameter identification, visualization and final file output  
