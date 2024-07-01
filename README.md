@@ -105,7 +105,7 @@ Timescale_Bayes_20240120_merge_nucdeg.sh
 which calls: Timescale_Bayes_20240120_merge_nucdeg.py  
 
 ### Bayes Factor calculations
-Four compartment Bayes factor calculation
+Four compartment Bayes factor calculation  
 Bayes_factor4_20231213_K562_i.sh  
 which calls: Bayes_factor4_20231213.py  
 
@@ -128,7 +128,7 @@ Merge BF4 batches:
 Bayes_factor4_20231213_merge.sh  
 which calls: Bayes_factor4_20231213_merge.py  
 
-Three compartment Bayes factor calculation
+Three compartment Bayes factor calculation  
 Bayes_factor3_20240110_K562_i.sh  
 which calls: Bayes_factor3_20240110.py  
 
