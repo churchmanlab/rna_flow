@@ -3,7 +3,7 @@
 Code to accompany publication:  
 Ietswaart, R., Smalec, B.M., Xu, A., et al, (2024).  
 Genome-wide quantification of RNA flow across subcellular compartments reveals determinants of the mammalian transcript life cycle.  
-Mol Cell, 84  
+Molecular Cell, 84, 2765–2784  
 https://doi.org/10.1016/j.molcel.2024.06.008  
 
 
